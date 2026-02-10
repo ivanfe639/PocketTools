@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lista de Tareas con Estadísticas</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    :root {
+      --bg-color: #000000;
+      --card-bg: #1c1c1e;
+      --item-bg: #2c2c2e;
+      --primary: #0a84ff;
+      --text-main: #ffffff;
+      --text-sec: #8e8e93;
+      --danger: #ff453a;
+      --border: #38383a;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      margin: 0;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Chart styles */
+    .chart-container {
+      width: 100%;
+      min-height: 250px;
+      height: auto;
+      margin: 20px 0;
+      background: var(--card-bg);
+      padding: 15px;
+      border-radius: 18px;
+      box-sizing: border-box;
+    }
+
+    .container {
+      background: var(--bg-color);
+      /* Full black for OLED feel or app bg */
+      width: 100%;
+      max-width: 480px;
+      /* Mobile width constraint on desktop */
+      min-height: 100vh;
+      padding: 20px;
+      /* Safe area padding */
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+      border-left: 1px solid #222;
+      border-right: 1px solid #222;
+    }
+
+    /* Desktop tweaks */
+    @media (min-width: 600px) {
+      .container {
+        border-radius: 40px;
+        /* Phone frame look */
+        margin-top: 20px;
+        margin-bottom: 20px;
+        min-height: calc(100vh - 40px);
+        height: auto;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        border: 1px solid #333;
+        overflow: hidden;
+        /* rounded corners fix */
+      }
+    }
+
+    h2 {
+      text-align: center;
+      font-weight: 700;
+      margin-bottom: 24px;
+      font-size: 22px;
+    }
+
+    #taskInput {
+      width: 100%;
+      padding: 16px;
+      background: var(--card-bg);
+      border: none;
+      color: var(--text-main);
+      border-radius: 14px;
+      font-size: 17px;
+      margin-bottom: 16px;
+      outline: none;
+      box-sizing: border-box;
+      transition: background 0.2s;
+    }
+
+    #taskInput:focus {
+      background: #2c2c2e;
+    }
+
+    /* Button area layout */
+    .button-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .button-row>* {
+      flex: 1;
+    }
+
+    button {
+      padding: 12px;
+      cursor: pointer;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: transform 0.1s, opacity 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--item-bg);
+      color: var(--primary);
+      min-height: 44px;
+      /* Mobile touch target */
+    }
+
+    button:active {
+      transform: scale(0.97);
+      opacity: 0.8;
+    }
+
+    #addBtn {
+      background: var(--primary);
+      color: white;
+      width: 100%;
+      margin-bottom: 12px;
+      font-size: 16px;
+    }
+
+    #taskType {
+      width: 100%;
+      padding: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      border-radius: 12px;
+      font-size: 15px;
+      margin-bottom: 12px;
+      outline: none;
+      appearance: none;
+      cursor: pointer;
+    }
+
+    .counter-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .count-btn {
+      width: 32px;
+      height: 32px;
+      min-height: 32px;
+      padding: 0;
+      border-radius: 8px;
+      background: var(--item-bg);
+      color: var(--primary);
+      font-size: 18px;
+    }
+
+    .count-val {
+      font-weight: 700;
+      min-width: 20px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* List styling */
+    ul {
+      list-style: none;
+      padding: 0;
+      margin-top: 10px;
+      overflow-y: auto;
+      scrollbar-width: none;
+      /* Hide for Firefox */
+      -ms-overflow-style: none;
+      /* Hide for IE/Edge */
+    }
+
+    ul::-webkit-scrollbar {
+      display: none;
+      /* Hide for Chrome/Safari */
+    }
+
+    li {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      background: var(--card-bg);
+      padding: 16px;
+      border-radius: 14px;
+      font-size: 17px;
+      transition: background 0.3s ease, border-color 0.3s ease;
+      cursor: grab;
+      user-select: none;
+      /* Animation will be handled via JS for reordering smoothness */
+    }
+
+    li.dragging {
+      opacity: 0.3;
+      background: var(--primary);
+      transform: scale(0.98);
+      cursor: grabbing;
+      z-index: 100;
+      transition: none;
+      /* Instant during drag start */
+    }
+
+    li.completed span {
+      text-decoration: line-through;
+      color: var(--text-sec);
+    }
+
+    li.is-counter span {
+      text-decoration: none !important;
+      color: var(--text-main) !important;
+    }
+
+    input[type="checkbox"] {
+      width: 22px;
+      height: 22px;
+      accent-color: var(--primary);
+      margin-right: 14px;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+
+    .deleteBtn {
+      background: transparent;
+      color: var(--danger);
+      padding: 8px;
+    }
+
+    .stats {
+      margin-top: 20px;
+      background: var(--card-bg);
+      padding: 15px;
+      border-radius: 14px;
+      color: var(--text-sec);
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .stats span {
+      color: var(--text-main);
+      font-weight: 600;
+      font-size: 15px;
+    }
+
+    /* Full screen stats view */
+    #statsView {
+      background: var(--bg-color);
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 100;
+      padding: 20px;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+      /* Header fixed, internal scroll */
+    }
+
+    .stats-scroll-area {
+      flex: 1;
+      overflow-y: auto;
+      margin-top: 10px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .stats-scroll-area::-webkit-scrollbar {
+      display: none;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-top: 20px;
+    }
+
+    th,
+    td {
+      padding: 12px 8px;
+      border-bottom: 1px solid var(--border);
+      text-align: center;
+      font-size: 13px;
+    }
+
+    th {
+      color: var(--text-sec);
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+      background: var(--bg-color);
+    }
+
+    td.completed {
+      color: var(--primary);
+    }
+
+    td.missed {
+      color: var(--danger);
+    }
+
+    .date-filters {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      justify-content: center;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+      /* Don't shrink when scrolling */
+    }
+
+    .date-filters label {
+      display: flex;
+      flex-direction: column;
+      color: var(--text-sec);
+      font-size: 13px;
+      text-align: left;
+    }
+
+    input[type="date"] {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 10px;
+      border-radius: 8px;
+      outline: none;
+      margin-top: 5px;
+      font-family: inherit;
+    }
+
+    #filterBtn,
+    #exportBtn,
+    #todayBtn,
+    #deleteStatsBtn {
+      align-self: flex-end;
+      background: var(--primary);
+      color: white;
+      height: 42px;
+      /* Match input height roughly */
+      margin-bottom: 2px;
+    }
+
+    #exportBtn,
+    #todayBtn,
+    #importBtn {
+      background: var(--item-bg);
+      border: 1px solid var(--border);
+      color: var(--primary);
+      margin-left: 10px;
+    }
+
+    #deleteStatsBtn {
+      background: rgba(255, 69, 58, 0.1);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    #testBtn {
+      display: none;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Lista de Tareas</h2>
+    <input type="text" id="taskInput" placeholder="Añadir nueva tarea...">
+    <select id="taskType">
+      <option value="check"> Check ✔</option>
+      <option value="counter"> Contador 🔢</option>
+    </select>
+    <button id="addBtn">Agregar</button>
+    <div class="button-row">
+      <button id="statsBtn">📊 Estadísticas</button>
+      <button id="toggleBtn">🌗 Tema</button>
+      <button id="testBtn">🎲 Test</button>
+    </div>
+    <ul id="taskList"></ul>
+    <div class="stats">
+      <p>Tareas completadas hoy: <span id="completedToday">0</span></p>
+
+    </div>
+    <div id="statsView">
+      <h2>Estadísticas de Tareas por Día</h2>
+      <button id="backBtn">⬅ Volver</button>
+
+      <div class="date-filters">
+        <label>Desde: <input type="date" id="startDate"></label>
+        <label>Hasta: <input type="date" id="endDate"></label>
+        <button id="todayBtn">📅 Hoy</button>
+        <button id="filterBtn">Filtrar</button>
+        <button id="exportBtn">📥 Exportar CSV</button>
+        <button id="importBtn">📤 Importar CSV</button>
+        <input type="file" id="importFile" accept=".csv" style="display: none;">
+      </div>
+
+
+
+      <div class="stats-scroll-area">
+        <table id="statsTable"></table>
+
+        <div class="chart-container" id="checkChartContainer">
+          <canvas id="statsChartCheck"></canvas>
+        </div>
+        <div class="chart-container" id="counterChartContainer">
+          <canvas id="statsChartCounter"></canvas>
+        </div>
+        <button id="deleteStatsBtn">🗑️ Borrar Rango de Datos</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    const addBtn = document.getElementById("addBtn");
+    const taskInput = document.getElementById("taskInput");
+    const taskType = document.getElementById("taskType");
+    const taskList = document.getElementById("taskList");
+    const completedTodayEl = document.getElementById("completedToday");
+
+    const statsBtn = document.getElementById("statsBtn");
+    const statsView = document.getElementById("statsView");
+    const statsTable = document.getElementById("statsTable");
+    const backBtn = document.getElementById("backBtn");
+    const toggleBtn = document.getElementById("toggleBtn");
+    const container = document.querySelector(".container");
+    const body = document.body;
+    const testBtn = document.getElementById("testBtn");
+
+    // Date filter elements
+    const startDateInput = document.getElementById("startDate");
+    const endDateInput = document.getElementById("endDate");
+    const filterBtn = document.getElementById("filterBtn");
+    const exportBtn = document.getElementById("exportBtn");
+    const todayBtn = document.getElementById("todayBtn");
+    const importBtn = document.getElementById("importBtn");
+    const importFile = document.getElementById("importFile");
+    const deleteStatsBtn = document.getElementById("deleteStatsBtn");
+    let statsChartCheckInstance = null;
+    let statsChartCounterInstance = null;
+
+    // Remove legacy theme code references if need be, but for now update color toggle:
+    // Update theme toggle to switch CSS variables instead of hardcoded styles
+    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+    let stats = JSON.parse(localStorage.getItem("stats")) || { completedToday: 0, completedTotal: 0, lastDate: getToday(), history: {} };
+    let theme = localStorage.getItem("theme") || "dark";
+
+    // Apply saved theme on load
+    const applyTheme = (t) => {
+      if (t === 'light') {
+        body.classList.add('light-mode');
+        document.documentElement.style.setProperty('--bg-color', '#f2f2f7');
+        document.documentElement.style.setProperty('--card-bg', '#ffffff');
+        document.documentElement.style.setProperty('--text-main', '#000000');
+      } else {
+        body.classList.remove('light-mode');
+        document.documentElement.style.setProperty('--bg-color', '#000000');
+        document.documentElement.style.setProperty('--card-bg', '#1c1c1e');
+        document.documentElement.style.setProperty('--text-main', '#ffffff');
+      }
+    };
+    applyTheme(theme);
+
+    toggleBtn.addEventListener("click", () => {
+      theme = theme === "dark" ? "light" : "dark";
+      applyTheme(theme);
+      saveData();
+      if (statsView.style.display === "flex") {
+        renderStats();
+      }
+    });
+
+    function getToday(d = new Date()) {
+      // Define la zona horaria deseada, por ejemplo 'America/Bogota', 'America/Mexico_City', etc.
+      const timeZone = 'America/Bogota';
+
+      // Usamos locale 'sv-SE' para obtener formato YYYY-MM-DD
+      return new Intl.DateTimeFormat('sv-SE', {
+        timeZone
+      }).format(d);
+    }
+
+    if (stats.lastDate !== getToday()) {
+      tasks.forEach(t => {
+        t.completed = false;
+        if (t.type === 'counter') t.count = 0;
+      });
+      stats.completedToday = 0;
+      stats.lastDate = getToday();
+      saveData();
+    }
+
+    function saveData() {
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+      localStorage.setItem("stats", JSON.stringify(stats));
+      localStorage.setItem("theme", theme);
+    }
+
+    function renderTasks() {
+      taskList.innerHTML = "";
+
+      tasks.forEach((task, index) => {
+        const li = document.createElement("li");
+        li.draggable = true;
+        if (task.completed) li.classList.add("completed");
+        if (task.type === "counter") li.classList.add("is-counter");
+
+        const span = document.createElement("span");
+        span.textContent = task.text;
+        span.style.flex = "1";
+        span.style.marginLeft = "10px";
+
+        const controlContainer = document.createElement("div");
+        controlContainer.className = "counter-controls";
+
+        if (task.type === "counter") {
+          const minusBtn = document.createElement("button");
+          minusBtn.textContent = "−";
+          minusBtn.className = "count-btn";
+          minusBtn.addEventListener("click", () => {
+            if (task.count > 0) {
+              const wasZero = task.count === 0;
+              task.count--;
+              if (task.count === 0) stats.completedToday--;
+
+              if (!stats.history[getToday()]) stats.history[getToday()] = {};
+              stats.history[getToday()][task.text] = task.count;
+
+              saveData();
+              renderTasks();
+            }
+          });
+
+          const countDisplay = document.createElement("span");
+          countDisplay.textContent = task.count || 0;
+          countDisplay.className = "count-val";
+
+          const plusBtn = document.createElement("button");
+          plusBtn.textContent = "+";
+          plusBtn.className = "count-btn";
+          plusBtn.addEventListener("click", () => {
+            const wasZero = (task.count || 0) === 0;
+            task.count = (task.count || 0) + 1;
+            if (wasZero) stats.completedToday++;
+
+            if (!stats.history[getToday()]) stats.history[getToday()] = {};
+            stats.history[getToday()][task.text] = task.count;
+
+            saveData();
+            renderTasks();
+          });
+
+          controlContainer.appendChild(minusBtn);
+          controlContainer.appendChild(countDisplay);
+          controlContainer.appendChild(plusBtn);
+
+          if (task.count > 0) li.classList.add("completed");
+        } else {
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = task.completed;
+          checkbox.addEventListener("change", () => {
+            task.completed = checkbox.checked;
+            if (checkbox.checked) {
+              stats.completedToday++;
+              stats.completedTotal++;
+              if (!stats.history[getToday()]) stats.history[getToday()] = {};
+              stats.history[getToday()][task.text] = true;
+            } else {
+              stats.completedToday--;
+              if (stats.history[getToday()]) stats.history[getToday()][task.text] = false;
+            }
+            saveData();
+            renderTasks();
+          });
+          li.prepend(checkbox);
+        }
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "❌";
+        deleteBtn.classList.add("deleteBtn");
+
+        deleteBtn.addEventListener("click", () => {
+          if (task.type === 'counter') {
+            if (task.count > 0) stats.completedToday--;
+          } else {
+            if (task.completed) stats.completedToday--;
+          }
+          tasks.splice(index, 1);
+          saveData();
+          renderTasks();
+        });
+
+        li.appendChild(span);
+        li.appendChild(controlContainer);
+        li.appendChild(deleteBtn);
+        taskList.appendChild(li);
+
+        li.addEventListener("dragstart", e => {
+          li.classList.add("dragging");
+          e.dataTransfer.effectAllowed = "move";
+        });
+
+        li.addEventListener("dragend", () => {
+          li.classList.remove("dragging");
+          // Clean up any inline reordering styles
+          taskList.querySelectorAll('li').forEach(item => {
+            item.style.transform = '';
+            item.style.transition = '';
+          });
+
+          // Update tasks array from DOM order
+          const newTasks = [];
+          const items = taskList.querySelectorAll('li');
+          items.forEach(item => {
+            const text = item.querySelector('span').textContent;
+            const completed = item.classList.contains('completed');
+            newTasks.push({ text, completed });
+          });
+          tasks = newTasks;
+          saveData();
+        });
+      });
+
+      completedTodayEl.textContent = stats.completedToday;
+
+    }
+
+    taskList.addEventListener("dragover", e => {
+      e.preventDefault();
+      const draggingItem = document.querySelector(".dragging");
+      if (!draggingItem) return;
+
+      const siblings = [...taskList.querySelectorAll("li:not(.dragging)")];
+
+      const nextSibling = siblings.find(sibling => {
+        const rect = sibling.getBoundingClientRect();
+        return e.clientY <= rect.top + rect.height / 2;
+      });
+
+      if (nextSibling !== draggingItem.nextSibling) {
+        // FLIP animation logic for siblings
+        const itemsToAnimate = [...taskList.querySelectorAll("li")];
+        const oldRects = itemsToAnimate.map(item => item.getBoundingClientRect());
+
+        if (nextSibling) {
+          taskList.insertBefore(draggingItem, nextSibling);
+        } else {
+          taskList.appendChild(draggingItem);
+        }
+
+        // Animate the displacement
+        itemsToAnimate.forEach((item, i) => {
+          if (item === draggingItem) return; // Don't animate the one being held
+          const newRect = item.getBoundingClientRect();
+          const dy = oldRects[i].top - newRect.top;
+
+          if (dy !== 0) {
+            item.style.transition = 'none';
+            item.style.transform = `translateY(${dy}px)`;
+            item.offsetHeight; // trigger reflow
+            item.style.transition = 'transform 0.3s cubic-bezier(0.2, 1, 0.2, 1)';
+            item.style.transform = 'translateY(0)';
+          }
+        });
+      }
+    });
+
+    addBtn.addEventListener("click", () => {
+      const taskText = taskInput.value.trim();
+
+      if (taskText !== "") {
+        const type = taskType.value;
+        const newTask = { text: taskText, type: type };
+        if (type === 'counter') {
+          newTask.count = 0;
+        } else {
+          newTask.completed = false;
+        }
+        tasks.push(newTask);
+        taskInput.value = "";
+        testBtn.style.display = "none"; // Hide after adding
+        saveData();
+        renderTasks();
+      }
+    });
+
+    taskInput.addEventListener("input", () => {
+      if (taskInput.value.toLowerCase().trim() === "test") {
+        testBtn.style.display = "block";
+      } else {
+        testBtn.style.display = "none";
+      }
+    });
+
+    statsBtn.addEventListener("click", () => {
+      document.querySelector("ul").style.display = "none";
+      document.querySelector(".stats").style.display = "none";
+      statsView.style.display = "flex";
+      renderStats();
+    });
+
+    backBtn.addEventListener("click", () => {
+      statsView.style.display = "none";
+      document.querySelector("ul").style.display = "block";
+      document.querySelector(".stats").style.display = "block";
+    });
+
+    function renderStats() {
+      statsTable.innerHTML = "";
+
+      // Filter dates
+      const start = startDateInput.value;
+      const end = endDateInput.value;
+
+      const days = Object.keys(stats.history).sort().filter(day => {
+        if (start && day < start) return false;
+        if (end && day > end) return false;
+        return true;
+      });
+
+      // Filter tasks by type
+      const checkTasks = tasks.filter(t => t.type !== 'counter');
+      const counterTasks = tasks.filter(t => t.type === 'counter');
+
+      const isDark = theme === "dark";
+      const mainTextColor = isDark ? '#ffffff' : '#000000';
+      const secTextColor = '#8e8e93';
+      const gridLineColor = isDark ? '#38383a' : '#e5e5ea';
+
+      // --- RENDER CHECK CHART ---
+      const checkChartContainer = document.getElementById('checkChartContainer');
+      if (checkTasks.length > 0) {
+        checkChartContainer.style.display = 'block';
+        const checkLabels = checkTasks.map(t => t.text);
+        const checkData = checkTasks.map(task => {
+          let count = 0;
+          days.forEach(day => {
+            if (stats.history[day] && stats.history[day][task.text]) count++;
+          });
+          return count;
+        });
+
+        const ctxCheck = document.getElementById('statsChartCheck').getContext('2d');
+        if (statsChartCheckInstance) statsChartCheckInstance.destroy();
+
+        const dynamicHeightCheck = Math.max(250, checkTasks.length * 40 + 80);
+        checkChartContainer.style.height = `${dynamicHeightCheck}px`;
+
+        statsChartCheckInstance = new Chart(ctxCheck, {
+          type: 'bar',
+          plugins: [ChartDataLabels],
+          data: {
+            labels: checkLabels,
+            datasets: [{
+              label: 'Días Completados',
+              data: checkData,
+              backgroundColor: '#0a84ff',
+              borderRadius: 6,
+              barThickness: 24
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              title: {
+                display: true,
+                text: 'Tareas Check: Días Completados',
+                color: mainTextColor,
+                font: { size: 16, weight: 'bold', family: 'Inter' },
+                padding: { bottom: 10 }
+              },
+              datalabels: {
+                color: '#ffffff',
+                anchor: 'center',
+                align: 'center',
+                font: { weight: 'bold', size: 12 },
+                formatter: (val) => val > 0 ? val : ''
+              }
+            },
+            scales: {
+              x: {
+                beginAtZero: true,
+                grid: { display: false },
+                ticks: { color: secTextColor, stepSize: 1 }
+              },
+              y: {
+                grid: { color: gridLineColor },
+                ticks: { color: mainTextColor }
+              }
+            }
+          }
+        });
+      } else {
+        checkChartContainer.style.display = 'none';
+      }
+
+      // --- RENDER COUNTER CHART ---
+      const counterChartContainer = document.getElementById('counterChartContainer');
+      if (counterTasks.length > 0) {
+        counterChartContainer.style.display = 'block';
+        const counterLabels = counterTasks.map(t => t.text);
+        const counterData = counterTasks.map(task => {
+          let totalCount = 0;
+          days.forEach(day => {
+            if (stats.history[day] && typeof stats.history[day][task.text] === 'number') {
+              totalCount += stats.history[day][task.text];
+            }
+          });
+          return totalCount;
+        });
+
+        const ctxCounter = document.getElementById('statsChartCounter').getContext('2d');
+        if (statsChartCounterInstance) statsChartCounterInstance.destroy();
+
+        // Fixed height for circular chart usually works better
+        counterChartContainer.style.height = '350px';
+
+        statsChartCounterInstance = new Chart(ctxCounter, {
+          type: 'pie',
+          plugins: [ChartDataLabels],
+          data: {
+            labels: counterLabels,
+            datasets: [{
+              data: counterData,
+              backgroundColor: [
+                '#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#007aff', '#5856d6', '#af52de', '#ff2d55'
+              ],
+              borderWidth: 1,
+              borderColor: isDark ? '#1c1c1e' : '#ffffff'
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: true,
+                position: 'bottom',
+                labels: { color: mainTextColor, font: { family: 'Inter', size: 12 } }
+              },
+              title: {
+                display: true,
+                text: 'Tareas Contador: Totales Acumulados',
+                color: mainTextColor,
+                font: { size: 16, weight: 'bold', family: 'Inter' },
+                padding: { top: 10, bottom: 20 }
+              },
+              datalabels: {
+                color: '#ffffff',
+                font: { weight: 'bold', size: 14 },
+                formatter: (val, ctx) => {
+                  const label = ctx.chart.data.labels[ctx.dataIndex];
+                  return val > 0 ? `${val}` : '';
+                },
+                textShadowColor: 'rgba(0,0,0,0.5)',
+                textShadowBlur: 4
+              }
+            }
+          }
+        });
+      } else {
+        counterChartContainer.style.display = 'none';
+      }
+
+      const headerRow = document.createElement("tr");
+      const thTask = document.createElement("th");
+      thTask.textContent = "Tarea";
+      headerRow.appendChild(thTask);
+
+      days.forEach(day => {
+        const th = document.createElement("th");
+        th.textContent = day;
+        headerRow.appendChild(th);
+      });
+      statsTable.appendChild(headerRow);
+
+      tasks.forEach(task => {
+        const row = document.createElement("tr");
+        const tdTask = document.createElement("td");
+        tdTask.textContent = task.text;
+        row.appendChild(tdTask);
+
+        days.forEach(day => {
+          const td = document.createElement("td");
+
+          if (stats.history[day] && stats.history[day][task.text]) {
+            td.classList.add("completed");
+            const val = stats.history[day][task.text];
+            td.textContent = (typeof val === 'number') ? val : "✔";
+          } else {
+            td.classList.add("missed");
+            td.textContent = "❌";
+          }
+
+          row.appendChild(td);
+        });
+        statsTable.appendChild(row);
+      });
+    }
+
+    // Botón para generar datos de prueba
+    document.getElementById("testBtn").addEventListener("click", () => {
+
+      // Si no hay tareas, agregamos algunas
+      if (tasks.length === 0) {
+        tasks.push({
+          text: "Aprender JS", completed: false
+        });
+
+        tasks.push({
+          text: "Hacer ejercicio", completed: false
+        });
+
+        tasks.push({
+          text: "Leer documentación", completed: false
+        });
+      }
+
+      const today = new Date();
+
+      // Generar datos para hoy y los 2 días anteriores
+      for (let i = 0; i < 3; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const dayStr = getToday(d); // Usa la fecha pasada
+
+        if (!stats.history[dayStr]) {
+          stats.history[dayStr] = {};
+        }
+
+        tasks.forEach(task => {
+          if (task.type === 'counter') {
+            // Asigna un valor aleatorio entre 0 y 10 para contadores
+            stats.history[dayStr][task.text] = Math.floor(Math.random() * 11);
+          } else {
+            // Asigna completado aleatoriamente (50/50)
+            stats.history[dayStr][task.text] = Math.random() > 0.5;
+          }
+        });
+      }
+
+      // Guardar y refrescar
+      saveData();
+      renderTasks();
+
+      // Si estamos viendo estadísticas, refrescarlas
+      if (statsView.style.display === 'block') {
+        renderStats();
+      }
+
+      alert("✅ Datos de prueba generados para 3 días.");
+    });
+
+
+    filterBtn.addEventListener("click", renderStats);
+
+    todayBtn.addEventListener("click", () => {
+      const today = getToday();
+      startDateInput.value = today;
+      endDateInput.value = today;
+      renderStats();
+    });
+
+    deleteStatsBtn.addEventListener("click", () => {
+      const start = startDateInput.value;
+      const end = endDateInput.value;
+
+      if (!start || !end) {
+        alert("Por favor, selecciona un rango de fechas para borrar.");
+        return;
+      }
+
+      if (confirm(`¿Estás seguro de que deseas borrar permanentemente el historial desde ${start} hasta ${end}? Esta acción no se puede deshacer.`)) {
+        const days = Object.keys(stats.history).filter(day => {
+          return day >= start && day <= end;
+        });
+
+        if (days.length === 0) {
+          alert("No se encontraron registros en este rango.");
+          return;
+        }
+
+        days.forEach(day => {
+          delete stats.history[day];
+        });
+
+        // Update current totals if today was deleted
+        const todayStr = getToday();
+        if (days.includes(todayStr)) {
+          stats.completedToday = 0;
+          tasks.forEach(t => t.completed = false);
+        }
+
+        saveData();
+        renderStats();
+        renderTasks();
+        alert(`✅ Se borraron ${days.length} días del historial.`);
+      }
+    });
+
+    exportBtn.addEventListener("click", async () => {
+      const emailRecipient = "ivan.fe639@gmail.com";
+
+      // Get filtered days
+      const start = startDateInput.value;
+      const end = endDateInput.value;
+
+      const days = Object.keys(stats.history).sort().filter(day => {
+        if (start && day < start) return false;
+        if (end && day > end) return false;
+        return true;
+      });
+
+      if (days.length === 0) {
+        alert("No hay datos para exportar en este rango.");
+        return;
+      }
+
+      // Build CSV content
+      let csvRaw = "Tarea," + days.join(",") + "\n";
+      tasks.forEach(task => {
+        let row = `"${task.text}"`;
+        days.forEach(day => {
+          const val = stats.history[day] ? stats.history[day][task.text] : null;
+          if (task.type === 'counter') {
+            row += "," + (val !== null ? val : 0);
+          } else {
+            row += "," + (val ? "Completado" : "Pendiente");
+          }
+        });
+        csvRaw += row + "\n";
+      });
+
+      const fileName = `reporte_tareas_${getToday()}.csv`;
+      const blob = new Blob([csvRaw], { type: 'text/csv;charset=utf-8;' });
+
+      // Try Web Share API (Best for mobile, allows actual attachment)
+      const file = new File([blob], fileName, { type: 'text/csv' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: 'Reporte de Tareas',
+            text: `Reporte de actividad diaria.`
+          });
+          return;
+        } catch (err) {
+          console.error("Error sharing:", err);
+        }
+      }
+
+      // FALLBACK: Download + Mailto (For PC and browsers without file share support)
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      const subject = encodeURIComponent(`Reporte de Tareas - ${getToday()}`);
+      const body = encodeURIComponent(`Hola,\n\nSe adjunta el reporte de tareas generado.\n\n⚠️ INSTRUCCIÓN: Por favor, adjunta manualmente el archivo "${fileName}" que se acaba de descargar.`);
+
+      setTimeout(() => {
+        window.location.href = `mailto:${emailRecipient}?subject=${subject}&body=${body}`;
+      }, 500);
+    });
+
+    importBtn.addEventListener("click", () => importFile.click());
+
+    importFile.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target.result;
+        const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
+        if (lines.length < 2) return;
+
+        // Parse header (dates)
+        const header = lines[0].split(",");
+        const dates = header.slice(1);
+
+        lines.slice(1).forEach(line => {
+          // Handle quotes in task names using regex to split by comma but ignore commas inside quotes
+          const parts = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+          if (parts.length < 2) return;
+
+          let taskName = parts[0].replace(/^"|"$/g, '').trim();
+
+          // Ensure task exists in current tasks list and infer type if missing
+          let existingTask = tasks.find(t => t.text === taskName);
+          if (!existingTask) {
+            // Check first occurrence of data to guess type
+            const firstVal = parts[1] ? parts[1].trim() : "";
+            const isNumeric = !isNaN(firstVal) && firstVal !== "Completado" && firstVal !== "Pendiente";
+            existingTask = { text: taskName, type: isNumeric ? 'counter' : 'check', completed: false };
+            tasks.push(existingTask);
+          }
+
+          dates.forEach((day, index) => {
+            const status = parts[index + 1] ? parts[index + 1].trim() : "";
+            if (!day || status === "") return;
+
+            const dayKey = day.trim();
+            if (!stats.history[dayKey]) stats.history[dayKey] = {};
+
+            if (existingTask.type === 'counter') {
+              stats.history[dayKey][taskName] = isNaN(status) ? 0 : Number(status);
+            } else {
+              stats.history[dayKey][taskName] = (status === "Completado");
+            }
+          });
+        });
+
+        // Update totals for today just in case
+        const todayStr = getToday();
+        if (stats.history[todayStr]) {
+          let count = 0;
+          tasks.forEach(task => {
+            if (stats.history[todayStr][task.text]) {
+              task.completed = true;
+              count++;
+            } else {
+              task.completed = false;
+            }
+          });
+          stats.completedToday = count;
+        }
+
+        saveData();
+        renderTasks();
+        if (statsView.style.display === "flex") {
+          renderStats();
+        }
+        alert("✅ Datos importados correctamente.");
+        importFile.value = ""; // Reset for next use
+      };
+      reader.readAsText(file);
+    });
+
+    renderTasks();
+  </script>
+</body>
+
+</html>
