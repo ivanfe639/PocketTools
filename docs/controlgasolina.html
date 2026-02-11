@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Gasolina | Premium Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #f59e0b;
+            /* Amber for fuel */
+            --primary-hover: #d97706;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --info: #3b82f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem 1rem;
+            color: var(--text-main);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.8s ease-out;
+            position: relative;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 2rem;
+            background: linear-gradient(to right, #fbbf24, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        /* Dashboard Header */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .stat-value.highlight {
+            color: var(--primary);
+        }
+
+        /* Form Section */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 400;
+            color: var(--text-dim);
+            margin-left: 0.25rem;
+        }
+
+        /* Custom Input Wrappers */
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .input-prefix,
+        .input-suffix {
+            padding: 0 1rem;
+            color: var(--text-dim);
+            font-weight: 600;
+            user-select: none;
+        }
+
+        .input-prefix {
+            padding-right: 0;
+        }
+
+        .input-suffix {
+            padding-left: 0;
+        }
+
+        input {
+            background: transparent;
+            border: none;
+            padding: 0.75rem 1rem;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            width: 100%;
+        }
+
+        /* Standard inputs without wrapper */
+        input.standard-input {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        input.standard-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2);
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+
+        .btn {
+            cursor: pointer;
+            border: none;
+            border-radius: 12px;
+            padding: 0.875rem;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-register {
+            background: var(--primary);
+            color: white;
+            margin-top: 0.5rem;
+        }
+
+        .btn-register:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.4);
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--glass-border);
+            margin: 2rem 0;
+        }
+
+        /* History Section */
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .history-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .btn-cierre {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            border-radius: 8px;
+        }
+
+        .btn-cierre:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .log-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-height: 500px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .log-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .log-list::-webkit-scrollbar-thumb {
+            background: var(--glass-border);
+            border-radius: 10px;
+        }
+
+        /* Log Item Styles */
+        .log-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1rem;
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            align-items: center;
+            gap: 1rem;
+            animation: slideIn 0.4s ease-out;
+            transition: transform 0.2s ease;
+            position: relative;
+        }
+
+        .log-item:hover {
+            transform: scale(1.01);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .log-item.reset-log {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px dashed var(--accent);
+            grid-template-columns: 1fr;
+            text-align: center;
+            justify-items: center;
+            padding: 0.75rem;
+        }
+
+        .log-main {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .log-date {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .log-stats {
+            display: flex;
+            gap: 0.75rem;
+            font-size: 0.9rem;
+            color: var(--text-main);
+        }
+
+        .log-efficiency {
+            font-weight: 600;
+            color: var(--accent);
+            font-size: 1rem;
+        }
+
+        .log-cost {
+            font-weight: 600;
+            color: var(--text-main);
+            font-size: 1rem;
+            text-align: right;
+        }
+
+        .btn-delete {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+
+        .btn-delete:hover {
+            color: var(--danger);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-dim);
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Control de Gasolina</h1>
+
+        <!-- Dashboard -->
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <span class="stat-label">Eficiencia Promedio</span>
+                <span class="stat-value highlight" id="avgEfficiency">0.0 km/gal</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Costo Total</span>
+                <span class="stat-value" id="totalCost">$0</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Distancia Total</span>
+                <span class="stat-value" id="totalDist">0 km</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Galones Total</span>
+                <span class="stat-value" id="totalGal">0.000 gal</span>
+            </div>
+        </div>
+
+        <!-- Input Form -->
+        <div class="input-group">
+            <div class="form-row">
+                <div class="field">
+                    <label for="dateInput">Fecha</label>
+                    <input type="datetime-local" id="dateInput" class="standard-input">
+                </div>
+                <div class="field">
+                    <label for="distInput">Distancia (km)</label>
+                    <input type="number" id="distInput" placeholder="0" step="0.1" class="standard-input">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="field">
+                    <label for="galInput">Galones</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="galInput" placeholder="0,000" inputmode="decimal">
+                        <span class="input-suffix">gal</span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="costInput">Costo Total ($)</label>
+                    <div class="input-wrapper">
+                        <span class="input-prefix">$</span>
+                        <input type="text" id="costInput" placeholder="0" inputmode="numeric">
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-register" id="btnAddLog">
+                Agregar Registro
+            </button>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- History -->
+        <div class="history-header">
+            <h2>Historial de Consumo</h2>
+            <button class="btn btn-cierre" id="btnClosePeriod">Cerrar Periodo (Reset)</button>
+        </div>
+
+        <div class="log-list" id="logList">
+            <!-- Logs will appear here -->
+        </div>
+    </div>
+
+    <script>
+        // Data Management
+        const STORAGE_KEY = 'pt_fuel_logs';
+        let logs = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+        // Elements
+        const dateInput = document.getElementById('dateInput');
+        const distInput = document.getElementById('distInput');
+        const galInput = document.getElementById('galInput');
+        const costInput = document.getElementById('costInput');
+
+        const btnAddLog = document.getElementById('btnAddLog');
+        const btnClosePeriod = document.getElementById('btnClosePeriod');
+        const logList = document.getElementById('logList');
+
+        // Dashboard Elements
+        const elAvgEff = document.getElementById('avgEfficiency');
+        const elTotalCost = document.getElementById('totalCost');
+        const elTotalDist = document.getElementById('totalDist');
+        const elTotalGal = document.getElementById('totalGal');
+
+        // Init Date Input
+        function setNow() {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            dateInput.value = now.toISOString().slice(0, 16);
+        }
+        setNow();
+
+        // --- Logic ---
+
+        function save() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
+            render();
+        }
+
+        // Parse localized inputs
+        function getNumberValue(valStr, isCurrency = false) {
+            if (!valStr) return 0;
+            // Remove currency symbols and thousands separators (dots in CO/ES)
+            let clean = valStr.toString();
+
+            if (isCurrency) {
+                // Remove non-numeric characters except decimals if any (though usually currency is integer here)
+                clean = clean.replace(/[^0-9]/g, '');
+                return parseFloat(clean);
+            } else {
+                // For floats with comma: 1.200,50 -> remove dots, replace comma with dot
+                // But simplified for this app: User types "4,500" for 4.5
+                // We just replace comma with dot.
+                clean = clean.replace(/,/g, '.');
+                return parseFloat(clean);
+            }
+        }
+
+        function addLog() {
+            const dist = parseFloat(distInput.value);
+            const gal = getNumberValue(galInput.value);
+            const cost = getNumberValue(costInput.value, true);
+            const dateVal = dateInput.value;
+
+            if (!dateVal || isNaN(dist) || isNaN(gal) || isNaN(cost) || dist <= 0 || gal <= 0 || cost <= 0) {
+                alert('Por favor complete todos los campos con valores válidos mayores a 0.');
+                return;
+            }
+
+            const newLog = {
+                id: Date.now(),
+                type: 'log',
+                date: dateVal,
+                dist: dist,
+                gal: gal,
+                cost: cost
+            };
+
+            logs.unshift(newLog); // Add to beginning (newest first)
+
+            // Reset inputs
+            distInput.value = '';
+            galInput.value = '';
+            costInput.value = '';
+            setNow();
+            distInput.focus();
+
+            save();
+        }
+
+        function deleteLog(id) {
+            if (confirm('¿Seguro que desea eliminar este registro?')) {
+                logs = logs.filter(l => l.id !== id);
+                save();
+            }
+        }
+
+        function closePeriod() {
+            // Calculate current period totals to verify if we can close
+            let currentStats = { dist: 0, gal: 0, cost: 0 };
+
+            for (let log of logs) {
+                if (log.type === 'reset') break; // Stop at previous reset
+                if (log.type === 'log') {
+                    currentStats.dist += log.dist;
+                    currentStats.gal += log.gal;
+                    currentStats.cost += log.cost;
+                }
+            }
+
+            if (currentStats.dist === 0 && currentStats.gal === 0) {
+                alert('No hay registros activos para cerrar el periodo.');
+                return;
+            }
+
+            if (!confirm('¿Cerrar el periodo actual? Esto reiniciará (visualmente) los contadores del tablero a 0.')) {
+                return;
+            }
+
+            const resetLog = {
+                id: Date.now(),
+                type: 'reset',
+                date: new Date().toISOString(),
+                totalDist: currentStats.dist,
+                totalGal: currentStats.gal,
+                totalCost: currentStats.cost,
+                avgEff: currentStats.dist / currentStats.gal
+            };
+
+            logs.unshift(resetLog);
+            save();
+        }
+
+        function formatCurrency(val) {
+            return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(val);
+        }
+
+        function formatNumber(val, decimals = 1) {
+            return val.toLocaleString('es-CO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+        }
+
+        function render() {
+            logList.innerHTML = '';
+
+            // 1. Calculate Dashboard Totals (Active Period Only)
+            let activeDist = 0;
+            let activeGal = 0;
+            let activeCost = 0;
+            let periodClosed = false;
+
+            // Iterate to display logs and calculate active period
+            logs.forEach(log => {
+                if (!periodClosed) {
+                    if (log.type === 'reset') {
+                        periodClosed = true;
+                    } else if (log.type === 'log') {
+                        activeDist += log.dist;
+                        activeGal += log.gal;
+                        activeCost += log.cost;
+                    }
+                }
+                logList.appendChild(createLogElement(log));
+            });
+
+            if (logs.length === 0) {
+                logList.innerHTML = '<div class="empty-state">No hay registros de consumo aún.</div>';
+            }
+
+            // Update Dashboard
+            let avg = 0;
+            if (activeGal > 0) avg = activeDist / activeGal;
+
+            elAvgEff.innerText = `${formatNumber(avg, 1)} km/gal`;
+            elTotalCost.innerText = formatCurrency(activeCost);
+            elTotalDist.innerText = `${formatNumber(activeDist, 1)} km`;
+            elTotalGal.innerText = `${formatNumber(activeGal, 3)} gal`;
+        }
+
+        function createLogElement(log) {
+            const el = document.createElement('div');
+
+            if (log.type === 'reset') {
+                el.className = 'log-item reset-log';
+                el.innerHTML = `
+                    <div>
+                        <strong>CIERRE DE PERIODO</strong><br>
+                        <span style="font-size: 0.85rem; opacity: 0.8">
+                            ${new Date(log.date).toLocaleDateString()}
+                        </span><br>
+                        <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-main)">
+                             ${formatNumber(log.totalDist, 1)} km | 
+                             ${formatNumber(log.totalGal, 2)} gal | 
+                             ${formatCurrency(log.totalCost)}
+                        </span>
+                    </div>
+                    <button class="btn-delete" title="Eliminar Cierre" onclick="deleteLog(${log.id})">×</button>
+                `;
+            } else {
+                el.className = 'log-item';
+                const eff = log.dist / log.gal;
+                el.innerHTML = `
+                    <div class="log-main">
+                        <div class="log-stats">
+                            <span>${formatNumber(log.dist, 1)} km</span>
+                            <span style="opacity: 0.5">|</span>
+                            <span>${formatNumber(log.gal, 3)} gal</span>
+                        </div>
+                        <div class="log-date">${new Date(log.date).toLocaleString()}</div>
+                    </div>
+                    
+                    <div class="log-efficiency">
+                        ${formatNumber(eff, 1)} km/gal
+                    </div>
+
+                    <div class="log-cost">
+                        ${formatCurrency(log.cost)}
+                        <button class="btn-delete" onclick="deleteLog(${log.id})" style="margin-left: 0.5rem; float: right;">×</button>
+                    </div>
+                `;
+            }
+            return el;
+        }
+
+        // --- Input Masks ---
+
+        // Currency Mask (Integer only for COP)
+        costInput.addEventListener('input', (e) => {
+            let val = e.target.value.replace(/\D/g, ''); // Remove non-digits
+            if (val) {
+                val = parseInt(val, 10).toLocaleString('es-CO');
+                e.target.value = val;
+            } else {
+                e.target.value = '';
+            }
+        });
+
+        // Decimal Mask (force comma)
+        galInput.addEventListener('input', (e) => {
+            let val = e.target.value;
+            // Allow digits and comma. Replace dot with comma.
+            val = val.replace(/\./g, ',');
+            // Remove any other characters
+            val = val.replace(/[^0-9,]/g, '');
+            // Ensure only one comma
+            const parts = val.split(',');
+            if (parts.length > 2) {
+                val = parts[0] + ',' + parts.slice(1).join('');
+            }
+            if (val !== e.target.value) {
+                e.target.value = val;
+            }
+        });
+
+        // Listeners
+        btnAddLog.addEventListener('click', addLog);
+        btnClosePeriod.addEventListener('click', closePeriod);
+
+        [distInput, galInput, costInput].forEach(inp => {
+            inp.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addLog();
+            });
+        });
+
+        render();
+
+    </script>
+</body>
+
+</html>
