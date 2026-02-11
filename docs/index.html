@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +44,7 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: 
+            background:
                 radial-gradient(circle at 10% 20%, rgba(0, 242, 255, 0.05) 0%, transparent 40%),
                 radial-gradient(circle at 90% 80%, rgba(112, 0, 255, 0.05) 0%, transparent 40%);
             z-index: -1;
@@ -200,8 +201,15 @@
 
         /* Animations */
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .app-card {
@@ -209,13 +217,14 @@
         }
     </style>
 </head>
+
 <body>
     <div class="bg-glow"></div>
 
     <header>
         <h1>PocketTools</h1>
         <p class="subtitle">Motor de aplicaciones inteligentes y accesos directos</p>
-        
+
         <div class="controls">
             <input type="text" id="searchInput" placeholder="Buscar herramienta..." class="search-bar">
         </div>
@@ -251,7 +260,7 @@
 
         function renderApps(appsToRender) {
             appsGrid.innerHTML = '';
-            
+
             if (appsToRender.length === 0) {
                 emptyState.style.display = 'block';
                 return;
@@ -264,12 +273,9 @@
                 card.href = app.path;
                 card.className = 'app-card';
                 card.style.animationDelay = `${index * 0.1}s`;
-                
-                // Choose icon based on name
-                let icon = 'layout';
-                if (app.name.toLowerCase().includes('gasto')) icon = 'wallet';
-                if (app.name.toLowerCase().includes('tarea') || app.name.toLowerCase().includes('lista')) icon = 'clipboard-check';
-                if (app.name.toLowerCase().includes('config')) icon = 'settings';
+
+                // Choose icon from metadata
+                const icon = app.icon || 'layout';
 
                 card.innerHTML = `
                     <div class="app-status">Ready</div>
@@ -279,18 +285,18 @@
                     <h3>${app.name}</h3>
                     <p>${app.filename}</p>
                 `;
-                
+
                 appsGrid.appendChild(card);
             });
-            
+
             lucide.createIcons();
         }
 
         // Search logic
         searchInput.addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
-            const filtered = APPS_DATA.filter(app => 
-                app.name.toLowerCase().includes(term) || 
+            const filtered = APPS_DATA.filter(app =>
+                app.name.toLowerCase().includes(term) ||
                 app.filename.toLowerCase().includes(term)
             );
             renderApps(filtered);
@@ -304,4 +310,5 @@
         }
     </script>
 </body>
+
 </html>
