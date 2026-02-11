@@ -1,4 +1,5 @@
-// This file is auto-generated. Do not edit manually.`nconst APPS_DATA = [
+﻿// This file is auto-generated. Do not edit manually.
+const APPS_DATA = [
     {
         "name":  "Control de Gastos | Premium Management",
         "path":  "controlGastos.html",
