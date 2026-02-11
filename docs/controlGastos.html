@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Gastos | Premium Management</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem 1rem;
+            color: var(--text-main);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 550px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.8s ease-out;
+            position: relative;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.5rem;
+            border-radius: 16px;
+        }
+
+        .nav-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            padding: 0.75rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .view-section {
+            display: none;
+        }
+
+        .view-section.active {
+            display: block;
+            animation: slideIn 0.4s ease-out;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 400;
+            color: var(--text-dim);
+            margin-left: 0.25rem;
+        }
+
+        input {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            color: white;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            outline: none;
+            width: 100%;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .btn {
+            cursor: pointer;
+            border: none;
+            border-radius: 12px;
+            padding: 0.875rem;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-register {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-register:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-export {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            margin-top: 1rem;
+            width: 100%;
+        }
+
+        .btn-export:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--glass-border);
+            margin: 2rem 0;
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .history-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .btn-cierre {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .btn-cierre:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .expense-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        .expense-list::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .expense-list::-webkit-scrollbar-thumb {
+            background: var(--glass-border);
+            border-radius: 10px;
+        }
+
+        .expense-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.4s ease-out;
+            transition: transform 0.2s ease;
+        }
+
+        .expense-item:hover {
+            transform: scale(1.02);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .expense-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .expense-concept {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .expense-date {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .expense-value {
+            font-weight: 600;
+            color: var(--accent);
+            font-size: 1.125rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-dim);
+            font-style: italic;
+        }
+
+        .total-section {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .total-label {
+            color: var(--text-dim);
+            font-weight: 400;
+        }
+
+        .total-amount {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+        }
+
+        .date-filter-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .report-summary {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px dashed var(--primary);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        /* Custom style for search results in reports */
+        .report-results {
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Control de Gastos</h1>
+
+        <nav class="nav-tabs">
+            <button class="nav-btn active" onclick="switchView('registro')">Registro</button>
+            <button class="nav-btn" onclick="switchView('reportes')">Reportes</button>
+        </nav>
+
+        <!-- VIEW: REGISTRO -->
+        <div id="view-registro" class="view-section active">
+            <div class="input-group">
+                <div class="field">
+                    <label for="concepto">Concepto de compra</label>
+                    <input type="text" id="concepto" placeholder="Ej: Supermercado" autocomplete="off">
+                </div>
+                <div class="field">
+                    <label for="valor">Valor ($)</label>
+                    <input type="number" id="valor" placeholder="0.00" step="0.01">
+                </div>
+                <button class="btn btn-register" id="btnRegistrar">
+                    Registrar Gasto
+                </button>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="history-header">
+                <h2>Registros Recientes</h2>
+                <button class="btn btn-cierre" id="btnCierre">Hacer Cierre</button>
+            </div>
+
+            <div class="expense-list" id="expenseList">
+                <!-- Items appear here -->
+            </div>
+
+            <div class="total-section">
+                <span class="total-label">Subtotal Periodo:</span>
+                <span class="total-amount" id="totalAmount">$0.00</span>
+            </div>
+        </div>
+
+        <!-- VIEW: REPORTES -->
+        <div id="view-reportes" class="view-section">
+            <div class="date-filter-grid">
+                <div class="field">
+                    <label for="fechaDesde">Desde</label>
+                    <input type="date" id="fechaDesde">
+                </div>
+                <div class="field">
+                    <label for="fechaHasta">Hasta</label>
+                    <input type="date" id="fechaHasta">
+                </div>
+            </div>
+
+            <div class="report-summary">
+                <p id="reportStats">Total filtrado: $0.00</p>
+            </div>
+
+            <div class="expense-list report-results" id="reportList">
+                <!-- Filtered items appear here -->
+            </div>
+
+            <button class="btn btn-export" onclick="exportToCSV()">
+                Descargar CSV (Excel)
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Data Management
+        let expenses = JSON.parse(localStorage.getItem('expenses')) || [];
+        let lastCierre = parseInt(localStorage.getItem('lastCierre')) || 0;
+
+        // Elements
+        const conceptInput = document.getElementById('concepto');
+        const valueInput = document.getElementById('valor');
+        const btnRegistrar = document.getElementById('btnRegistrar');
+        const btnCierre = document.getElementById('btnCierre');
+        const expenseList = document.getElementById('expenseList');
+        const totalAmountDisplay = document.getElementById('totalAmount');
+
+        // Report Elements
+        const fechaDesde = document.getElementById('fechaDesde');
+        const fechaHasta = document.getElementById('fechaHasta');
+        const reportList = document.getElementById('reportList');
+        const reportStats = document.getElementById('reportStats');
+
+        // Navigation
+        function switchView(viewName) {
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+            document.getElementById(`view-${viewName}`).classList.add('active');
+            event.currentTarget.classList.add('active');
+
+            if (viewName === 'reportes') renderReport();
+        }
+
+        function save() {
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+            localStorage.setItem('lastCierre', lastCierre.toString());
+            render();
+        }
+
+        function registerExpense() {
+            const concept = conceptInput.value.trim();
+            const value = parseFloat(valueInput.value);
+
+            if (!concept || isNaN(value) || value <= 0) {
+                alert('Por favor complete ambos campos con valores válidos.');
+                return;
+            }
+
+            const now = new Date();
+            const newExpense = {
+                id: Date.now(),
+                concept,
+                value,
+                timestamp: Date.now(),
+                dateLabel: now.toLocaleString(),
+                simpleDate: now.toISOString().split('T')[0] // For filtering
+            };
+
+            expenses.push(newExpense);
+            conceptInput.value = '';
+            valueInput.value = '';
+            conceptInput.focus();
+
+            save();
+        }
+
+        function doCierre() {
+            if (confirm('¿Está seguro de realizar el cierre? Se ocultarán los registros anteriores a este momento en la vista principal.')) {
+                lastCierre = Date.now();
+                save();
+            }
+        }
+
+        function render() {
+            expenseList.innerHTML = '';
+
+            const visibleExpenses = expenses.filter(e => e.timestamp >= lastCierre);
+
+            if (visibleExpenses.length === 0) {
+                expenseList.innerHTML = '<div class="empty-state">No hay registros después del último cierre.</div>';
+                totalAmountDisplay.innerText = '$0.00';
+            } else {
+                let total = 0;
+                visibleExpenses.sort((a, b) => b.timestamp - a.timestamp).forEach(expense => {
+                    total += expense.value;
+                    expenseList.appendChild(createExpenseItem(expense));
+                });
+                totalAmountDisplay.innerText = `$${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+            }
+        }
+
+        function createExpenseItem(exp) {
+            const item = document.createElement('div');
+            item.className = 'expense-item';
+            item.innerHTML = `
+                <div class="expense-info">
+                    <span class="expense-concept">${exp.concept}</span>
+                    <span class="expense-date">${exp.dateLabel}</span>
+                </div>
+                <span class="expense-value">$${exp.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            `;
+            return item;
+        }
+
+        function renderReport() {
+            reportList.innerHTML = '';
+            const desde = fechaDesde.value;
+            const hasta = fechaHasta.value;
+
+            let filtered = expenses;
+
+            if (desde) {
+                filtered = filtered.filter(e => e.simpleDate >= desde);
+            }
+            if (hasta) {
+                filtered = filtered.filter(e => e.simpleDate <= hasta);
+            }
+
+            if (filtered.length === 0) {
+                reportList.innerHTML = '<div class="empty-state">No se encontraron registros en este rango.</div>';
+                reportStats.innerText = 'Total filtrado: $0.00';
+            } else {
+                let total = 0;
+                filtered.sort((a, b) => b.timestamp - a.timestamp).forEach(expense => {
+                    total += expense.value;
+                    reportList.appendChild(createExpenseItem(expense));
+                });
+                reportStats.innerText = `Total filtrado: $${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+            }
+        }
+
+        function exportToCSV() {
+            if (expenses.length === 0) {
+                alert('No hay datos para exportar.');
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Fecha,Concepto,Valor\n";
+
+            expenses.forEach(e => {
+                // Formatting for CSV (removing commas from concept if any)
+                const safeConcept = e.concept.replace(/,/g, '');
+                csvContent += `${e.dateLabel},${safeConcept},${e.value}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Reporte_Gastos_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Event Listeners
+        btnRegistrar.addEventListener('click', registerExpense);
+        btnCierre.addEventListener('click', doCierre);
+
+        fechaDesde.addEventListener('change', renderReport);
+        fechaHasta.addEventListener('change', renderReport);
+
+        valueInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') registerExpense();
+        });
+
+        // Set default dates for reports (last 30 days)
+        const today = new Date().toISOString().split('T')[0];
+        fechaHasta.value = today;
+
+        // Initial Render
+        render();
+    </script>
+</body>
+
+</html>
