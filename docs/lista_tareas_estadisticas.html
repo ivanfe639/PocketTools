@@ -383,6 +383,19 @@
     #testBtn {
       display: none;
     }
+
+    .app-version {
+      position: absolute;
+      bottom: 15px;
+      right: 20px;
+      font-size: 11px;
+      color: var(--text-sec);
+      opacity: 0.6;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      pointer-events: none;
+      z-index: 10;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
@@ -408,7 +421,7 @@
 
     </div>
     <div id="statsView">
-      <h2>Estadísticas de Tareas por Día</h2>
+      <h2>Estadísticas de Tareas por Día.</h2>
       <button id="backBtn">⬅ Volver</button>
 
       <div class="date-filters">
@@ -435,6 +448,7 @@
         <button id="deleteStatsBtn">🗑️ Borrar Rango de Datos</button>
       </div>
     </div>
+    <div class="app-version">v0.4</div>
   </div>
   <script>
     const addBtn = document.getElementById("addBtn");
@@ -1119,14 +1133,31 @@
 
           let taskName = parts[0].replace(/^"|"$/g, '').trim();
 
-          // Ensure task exists in current tasks list and infer type if missing
+          // Determinar el tipo: si algún valor en la fila es un número entero, es de tipo contador
+          const dataParts = parts.slice(1);
+          const hasInteger = dataParts.some(val => {
+            const trimmed = val.trim();
+            if (trimmed === "" || trimmed === "Completado" || trimmed === "Pendiente") return false;
+            const num = Number(trimmed);
+            return trimmed !== "" && !isNaN(trimmed) && Number.isInteger(num);
+          });
+          const inferredType = hasInteger ? 'counter' : 'check';
+
+          // Asegurar que la tarea exista y tenga el tipo correcto
           let existingTask = tasks.find(t => t.text === taskName);
           if (!existingTask) {
-            // Check first occurrence of data to guess type
-            const firstVal = parts[1] ? parts[1].trim() : "";
-            const isNumeric = !isNaN(firstVal) && firstVal !== "Completado" && firstVal !== "Pendiente";
-            existingTask = { text: taskName, type: isNumeric ? 'counter' : 'check', completed: false };
+            existingTask = { text: taskName, type: inferredType };
+            if (inferredType === 'counter') {
+              existingTask.count = 0;
+            } else {
+              existingTask.completed = false;
+            }
             tasks.push(existingTask);
+          } else {
+            // Actualizar el tipo de la tarea existente según los datos importados
+            existingTask.type = inferredType;
+            if (inferredType === 'counter' && existingTask.count === undefined) existingTask.count = 0;
+            if (inferredType === 'check' && existingTask.completed === undefined) existingTask.completed = false;
           }
 
           dates.forEach((day, index) => {
@@ -1144,19 +1175,21 @@
           });
         });
 
-        // Update totals for today just in case
+        // Actualizar el estado de las tareas actuales para 'hoy' desde el historial importado
         const todayStr = getToday();
         if (stats.history[todayStr]) {
-          let count = 0;
+          let countCompleted = 0;
           tasks.forEach(task => {
-            if (stats.history[todayStr][task.text]) {
-              task.completed = true;
-              count++;
+            const val = stats.history[todayStr][task.text];
+            if (task.type === 'counter') {
+              task.count = (typeof val === 'number') ? val : (val ? 1 : 0);
+              if (task.count > 0) countCompleted++;
             } else {
-              task.completed = false;
+              task.completed = !!val;
+              if (task.completed) countCompleted++;
             }
           });
-          stats.completedToday = count;
+          stats.completedToday = countCompleted;
         }
 
         saveData();
