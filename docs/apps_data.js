@@ -16,6 +16,6 @@ const APPS_DATA = [
         "name":  "Lista de Tareas con Estadísticas",
         "path":  "lista_tareas_estadisticas.html",
         "filename":  "lista_tareas_estadisticas.html",
-        "icon":  "list-todo"
+        "icon":  "layout"
     }
 ];
