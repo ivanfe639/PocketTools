@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Compras | Smart Hierarchy</title>
+    <meta name="app-icon" content="shopping-cart">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent: #10b981;
+            --danger: #ef4444;
+            --drag-source: rgba(99, 102, 241, 0.3);
+            --drag-target: rgba(16, 185, 129, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            min-height: 100vh;
+            color: var(--text-main);
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            min-height: 80vh;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #818cf8, #c084fc);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-icon {
+            padding: 0.5rem;
+            background: transparent;
+            color: var(--text-dim);
+        }
+
+        .btn-icon:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-delete {
+            color: var(--danger);
+        }
+
+        .btn-delete:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        /* --- Hierarchical List Styling --- */
+        .wrapper {
+            /* Wrapper holds the local context color */
+            --current-color: var(--node-color, #6366f1);
+        }
+
+        .node-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding-left: 1.5rem;
+            /* Indentation line colored by theme */
+            border-left: 1px solid color-mix(in srgb, var(--current-color), transparent 85%);
+            min-height: 10px;
+        }
+
+        .root-container {
+            padding-left: 0;
+            border-left: none;
+        }
+
+        .node-item {
+            /* Inherit color from wrapper */
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 0.5rem 1rem;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        /* Header for both List and Item types */
+        .node-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            width: 100%;
+        }
+
+        .drag-handle {
+            cursor: move;
+            /* fallback */
+            cursor: grab;
+            color: var(--text-dim);
+            opacity: 0.5;
+        }
+
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+
+        .node-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .node-title {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 1rem;
+            width: 100%;
+            outline: none;
+        }
+
+        .node-title:focus {
+            border-bottom: 1px solid var(--primary);
+        }
+
+        /* Type: List (Accordion - Header Style) */
+        .type-list {
+            /* Fallback to primary if not set, but wrapper should set it */
+            --current-color: var(--node-color, #6366f1);
+
+            background: linear-gradient(90deg, color-mix(in srgb, var(--current-color), transparent 80%) 0%, color-mix(in srgb, var(--current-color), transparent 95%) 100%);
+            border: 1px solid color-mix(in srgb, var(--current-color), transparent 70%);
+            border-left: 4px solid var(--current-color);
+            margin-bottom: 0.25rem;
+        }
+
+        .type-list .node-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+        }
+
+        .type-list:hover {
+            background: linear-gradient(90deg, color-mix(in srgb, var(--current-color), transparent 75%) 0%, color-mix(in srgb, var(--current-color), transparent 90%) 100%);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .accordion-toggle {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            width: 28px !important;
+            height: 28px !important;
+            min-width: 28px;
+            min-height: 28px;
+            padding: 0;
+            /* Critical fixes oval shape */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            margin-right: 0.5rem;
+        }
+
+        .accordion-toggle svg {
+            width: 16px;
+            height: 16px;
+            stroke-width: 2;
+            pointer-events: none;
+        }
+
+        .accordion-toggle:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: scale(1.05);
+        }
+
+        .accordion-toggle.collapsed svg {
+            transform: rotate(-90deg);
+        }
+
+        /* Type: Item (Product Style) */
+        .type-item {
+            --current-color: var(--node-color, #6366f1);
+
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-left: 2px solid color-mix(in srgb, var(--current-color), transparent 80%);
+        }
+
+        .type-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateX(4px);
+            /* Hover nudge */
+            border-left-color: var(--current-color);
+        }
+
+        .type-item .node-title {
+            font-size: 0.95rem;
+            font-weight: 300;
+            color: var(--text-dim);
+        }
+
+        .type-item .node-title:focus {
+            color: var(--text-main);
+            font-weight: 500;
+        }
+
+        .node-item.checked {
+            opacity: 0.5;
+            background: transparent;
+            border-color: transparent;
+        }
+
+        .node-item.checked .node-title {
+            text-decoration: line-through;
+            color: var(--text-dim);
+        }
+
+        /* Color Picker */
+        .color-picker-btn {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+        }
+
+        .color-picker-btn:hover {
+            transform: scale(1.1);
+            border-color: white;
+        }
+
+        .color-picker-input {
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            opacity: 0;
+            padding: 0;
+            margin: 0;
+        }
+
+        /* Checkbox custom style */
+        .custom-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--text-dim);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .custom-checkbox.checked {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .custom-checkbox svg {
+            color: #0f172a;
+            width: 14px;
+            height: 14px;
+            display: none;
+        }
+
+        .custom-checkbox.checked svg {
+            display: block;
+        }
+
+        /* Creating new items inside a list */
+        .add-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            padding-left: 2rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+
+        .node-item:hover+.node-container>.add-actions,
+        /* Show when hovering item above */
+        .node-container:hover>.add-actions,
+        /* Show when hovering the container */
+        .type-list:hover .add-actions {
+            /* Show when hovering the list header */
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .btn-mini {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.8rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-dim);
+            border: 1px solid var(--glass-border);
+        }
+
+        .btn-mini:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+        }
+
+        /* Drag & Drop Visuals */
+        .dragging {
+            opacity: 0.4;
+            transform: scale(0.98);
+        }
+
+        .drag-over-top {
+            border-top: 2px solid var(--primary);
+        }
+
+        .drag-over-bottom {
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .drag-over-inside {
+            background: rgba(99, 102, 241, 0.15);
+            border: 2px dashed var(--primary);
+        }
+
+        /* Completed section separator */
+        .completed-separator {
+            margin-top: 1rem;
+            border-top: 1px dashed var(--glass-border);
+            padding-top: 1rem;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <h1>Lista de Compras</h1>
+            <div class="controls" style="justify-content: center; flex-wrap: wrap;">
+                <button class="btn-primary" onclick="addRootList()">
+                    <i data-lucide="plus"></i> Nueva Lista Principal
+                </button>
+                <button class="btn-secondary" onclick="toggleAll(true)">
+                    <i data-lucide="chevrons-down-up"></i> Expandir Todo
+                </button>
+                <button class="btn-secondary" onclick="toggleAll(false)">
+                    <i data-lucide="chevrons-up-down"></i> Contraer Todo
+                </button>
+            </div>
+        </header>
+
+        <div id="rootList" class="node-container root-container">
+            <!-- Dynamic Content Here -->
+        </div>
+
+    </div>
+
+    <script>
+        // --- DATA MODEL ---
+        // Node Structure:
+        // {
+        //   id: string,
+        //   type: 'list' | 'item',
+        //   title: string,
+        //   color: string (optional, hex),
+        //   checked: boolean (only for item),
+        //   expanded: boolean (only for list),
+        //   children: [] (only for list)
+        // }
+
+        let data = loadData();
+        let focusTargetId = null;
+
+        function loadData() {
+            const saved = localStorage.getItem('shoppingList_data');
+            return saved ? JSON.parse(saved) : [];
+        }
+
+        function saveData() {
+            localStorage.setItem('shoppingList_data', JSON.stringify(data));
+        }
+
+        // --- RENDER LOGIC ---
+
+        const rootContainer = document.getElementById('rootList');
+
+        function render() {
+            rootContainer.innerHTML = '';
+
+            if (data.length === 0) {
+                rootContainer.innerHTML = `
+                    <div style="text-align: center; color: var(--text-dim); margin-top: 3rem; animation: fadeIn 0.5s;">
+                        <i data-lucide="shopping-cart" style="width: 48px; height: 48px; opacity: 0.3; margin-bottom: 1rem;"></i>
+                        <p style="font-size: 1.1rem; font-weight: 600;">Tu lista está vacía</p>
+                        <p style="font-size: 0.9rem; margin-top: 0.5rem;">Crea una nueva lista principal para comenzar a organizar.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            // Render root nodes
+            data.forEach((node, index) => {
+                rootContainer.appendChild(createNodeElement(node, data, null));
+            });
+            lucide.createIcons();
+        }
+
+        function createNodeElement(node, parentArray, inheritedColor) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'wrapper'; // Helper wrapper
+            wrapper.dataset.id = node.id;
+
+            // Determine effective color: Node's own color > Inherited Parent Color > Default
+            const effectiveColor = node.color || inheritedColor || '#6366f1';
+
+            // Set CSS variable on WRAPPER so siblings (children container) can inherit logic if needed
+            wrapper.style.setProperty('--node-color', effectiveColor);
+
+            // 1. The visible Node Item (Header/Row)
+            const el = document.createElement('div');
+            el.className = `node-item type-${node.type} ${node.checked ? 'checked' : ''}`;
+            el.draggable = true;
+
+            // Drag Events
+            addDragListeners(el, node, parentArray);
+
+            const header = document.createElement('div');
+            header.className = 'node-header';
+
+            // Drag Handle
+            const dragHandle = document.createElement('div');
+            dragHandle.className = 'drag-handle';
+            dragHandle.innerHTML = `<i data-lucide="grip-vertical" size="16"></i>`;
+            header.appendChild(dragHandle);
+
+            // Toggle (for lists) or Checkbox (for items)
+            if (node.type === 'list') {
+                const toggle = document.createElement('button');
+                toggle.className = `accordion-toggle ${!node.expanded ? 'collapsed' : ''}`;
+                toggle.onclick = (e) => {
+                    e.stopPropagation();
+                    node.expanded = !node.expanded;
+                    saveData();
+                    render();
+                };
+                toggle.innerHTML = `<i data-lucide="chevron-down" size="16"></i>`;
+                header.appendChild(toggle);
+            } else {
+                const checkbox = document.createElement('div');
+                checkbox.className = `custom-checkbox ${node.checked ? 'checked' : ''}`;
+                checkbox.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleCheck(node.id);
+                };
+                checkbox.innerHTML = `<i data-lucide="check"></i>`;
+                header.appendChild(checkbox);
+            }
+
+            // Title Input
+            const content = document.createElement('div');
+            content.className = 'node-content';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = node.title;
+            input.className = 'node-title';
+            input.placeholder = node.type === 'list' ? 'Nueva Categoría' : 'Nuevo Artículo';
+            if (node.id === focusTargetId) {
+                setTimeout(() => input.focus(), 0);
+                focusTargetId = null;
+            }
+            input.onchange = (e) => {
+                node.title = e.target.value;
+                saveData();
+            };
+            // Prevent drag when interacting with input
+            input.draggable = true;
+            input.ondragstart = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            content.appendChild(input);
+            header.appendChild(content);
+
+            // Actions Group
+            const actions = document.createElement('div');
+            actions.className = 'header-actions';
+
+            // Custom Color Picker (Only for Lists)
+            if (node.type === 'list') {
+                const colorWrapper = document.createElement('div');
+                colorWrapper.className = 'color-picker-btn';
+                colorWrapper.title = 'Cambiar Color';
+                // Show current color
+                colorWrapper.style.backgroundColor = effectiveColor;
+
+                const colorInput = document.createElement('input');
+                colorInput.type = 'color';
+                colorInput.className = 'color-picker-input';
+                colorInput.value = effectiveColor;
+                colorInput.oninput = (e) => {
+                    node.color = e.target.value;
+                    colorWrapper.style.backgroundColor = node.color;
+                    // Apply immediately to DOM for responsive feel
+                    wrapper.style.setProperty('--node-color', node.color);
+                };
+                colorInput.onchange = (e) => {
+                    node.color = e.target.value;
+                    saveData();
+                    render(); // Re-render to propagate to children
+                };
+
+                colorWrapper.appendChild(colorInput);
+                actions.appendChild(colorWrapper);
+            }
+
+            // Add Buttons (Only for Lists)
+            if (node.type === 'list') {
+                const addItemBtn = document.createElement('button');
+                addItemBtn.className = 'btn-icon';
+                addItemBtn.title = 'Agregar Artículo';
+                addItemBtn.innerHTML = `<i data-lucide="plus" size="16"></i>`;
+                addItemBtn.onclick = (e) => {
+                    e.stopPropagation(); // Prevent accordion toggle
+                    addItem(node.id, 'item');
+                }
+                actions.appendChild(addItemBtn);
+
+                const addListBtn = document.createElement('button');
+                addListBtn.className = 'btn-icon';
+                addListBtn.title = 'Agregar Sub-lista';
+                addListBtn.innerHTML = `<i data-lucide="folder-plus" size="16"></i>`;
+                addListBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    addItem(node.id, 'list');
+                }
+                actions.appendChild(addListBtn);
+            }
+
+            // Delete Button
+            const delBtn = document.createElement('button');
+            delBtn.className = 'btn-icon btn-delete';
+            delBtn.title = 'Eliminar';
+            delBtn.innerHTML = `<i data-lucide="trash-2" size="16"></i>`;
+            delBtn.onclick = () => deleteNode(node.id);
+            actions.appendChild(delBtn);
+
+            header.appendChild(actions);
+
+            el.appendChild(header);
+            wrapper.appendChild(el);
+
+            // 2. Children Container (Only for Lists)
+            if (node.type === 'list' && node.expanded) {
+                const childrenContainer = document.createElement('div');
+                childrenContainer.className = 'node-container';
+
+                // Add Items Actions (Always visible at top of list or bottom? Let's put at bottom)
+                // Filter children: Active first, Completed last
+                const activeChildren = (node.children || []).filter(c => !c.checked);
+                const completedChildren = (node.children || []).filter(c => c.checked);
+
+                // Render Active
+                activeChildren.forEach(child => {
+                    childrenContainer.appendChild(createNodeElement(child, node.children, effectiveColor));
+                });
+
+                // Completed Separator
+                if (activeChildren.length > 0 && completedChildren.length > 0) {
+                    const sep = document.createElement('div');
+                    sep.className = 'completed-separator';
+                    sep.innerText = 'Completados';
+                    childrenContainer.appendChild(sep);
+                }
+
+                // Render Completed
+                completedChildren.forEach(child => {
+                    childrenContainer.appendChild(createNodeElement(child, node.children, effectiveColor));
+                });
+
+                // Add Buttons - REMOVED (Moved to header)
+                // const addDiv = document.createElement('div'); ...
+                // childrenContainer.appendChild(addDiv);
+
+                wrapper.appendChild(childrenContainer);
+            }
+
+            return wrapper;
+        }
+
+        // --- ACTIONS ---
+
+        function addRootList() {
+            const newId = crypto.randomUUID();
+            data.unshift({
+                id: newId,
+                type: 'list',
+                title: '',
+                color: '#6366f1', // Default Primary
+                expanded: true,
+                children: []
+            });
+            focusTargetId = newId;
+            saveData();
+            render();
+        }
+
+        function addItem(parentId, type) {
+            const parent = findNode(parentId, data);
+            if (parent && parent.type === 'list') {
+                if (!parent.children) parent.children = [];
+                const newId = crypto.randomUUID();
+                parent.children.push({
+                    id: newId,
+                    type: type,
+                    title: '',
+                    checked: false,
+                    expanded: true,
+                    children: [] // Even items get "children" array structure for consistency although unused
+                });
+                parent.expanded = true; // Auto expand
+                focusTargetId = newId;
+                saveData();
+                render();
+            }
+        }
+
+        function toggleAll(expand) {
+            function traverse(list) {
+                list.forEach(node => {
+                    if (node.type === 'list') {
+                        node.expanded = expand;
+                        if (node.children) traverse(node.children);
+                    }
+                });
+            }
+            traverse(data);
+            saveData();
+            render();
+        }
+
+        function findNode(id, list) {
+            for (let node of list) {
+                if (node.id === id) return node;
+                if (node.children) {
+                    const found = findNode(id, node.children);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        function findParent(id, list) {
+            for (let node of list) {
+                if (node.children && node.children.some(c => c.id === id)) return node;
+                if (node.children) {
+                    const found = findParent(id, node.children);
+                    if (found) return found;
+                }
+            }
+            return null; // Root nodes have no parent object, their parent is 'data' array logic
+        }
+
+        function deleteNode(id) {
+            if (!confirm('¿Eliminar este elemento?')) return;
+
+            // Helper recursive delete
+            function remove(list) {
+                const idx = list.findIndex(n => n.id === id);
+                if (idx !== -1) {
+                    list.splice(idx, 1);
+                    return true;
+                }
+                for (let node of list) {
+                    if (node.children && remove(node.children)) return true;
+                }
+                return false;
+            }
+
+            remove(data);
+            saveData();
+            render();
+        }
+
+        function toggleCheck(id) {
+            const node = findNode(id, data);
+            if (node) {
+                node.checked = !node.checked;
+                saveData();
+                render(); // Re-render will handle sorting
+            }
+        }
+
+        // --- DRAG AND DROP LOGIC ---
+
+        let draggedId = null;
+        let dragSrcParent = null;
+
+        function addDragListeners(el, node, parentArray) {
+            el.addEventListener('dragstart', (e) => {
+                draggedId = node.id;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', node.id);
+                setTimeout(() => el.classList.add('dragging'), 0);
+            });
+
+            el.addEventListener('dragend', (e) => {
+                el.classList.remove('dragging');
+                document.querySelectorAll('.drag-over-top, .drag-over-bottom, .drag-over-inside').forEach(el => {
+                    el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-inside');
+                });
+                draggedId = null;
+            });
+
+            el.addEventListener('dragover', (e) => {
+                e.preventDefault(); // Allow drop
+                if (draggedId === node.id) return; // Can't drop on self
+
+                // Calculate drop position
+                const rect = el.getBoundingClientRect();
+                const offset = e.clientY - rect.top;
+                const height = rect.height;
+
+                // Reset classes
+                el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-inside');
+
+                // Logic: 
+                // Top 25% -> Insert Before
+                // Bottom 25% -> Insert After
+                // Middle 50% -> Nest (if target is list)
+
+                if (node.type === 'list' && offset > height * 0.25 && offset < height * 0.75) {
+                    el.classList.add('drag-over-inside');
+                } else if (offset < height / 2) {
+                    el.classList.add('drag-over-top');
+                } else {
+                    el.classList.add('drag-over-bottom');
+                }
+            });
+
+            el.addEventListener('dragleave', () => {
+                el.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-inside');
+            });
+
+            el.addEventListener('drop', (e) => {
+                e.stopPropagation();
+                if (draggedId === node.id) return;
+
+                const action = el.classList.contains('drag-over-inside') ? 'inside' :
+                    el.classList.contains('drag-over-top') ? 'before' : 'after';
+
+                handleDrop(draggedId, node.id, action);
+            });
+        }
+
+        function handleDrop(srcId, targetId, action) {
+            // 0. Find Source Node first (without removing) to check for cycles
+            const srcNodeRef = findNode(srcId, data);
+            if (!srcNodeRef) return;
+
+            // Cycle Check: Cannot drop a parent into its own child
+            // If the target is found inside the source node's children, abort.
+            if (srcNodeRef.children && findNode(targetId, srcNodeRef.children)) {
+                // Blink or alert? Just returning prevents the disaster.
+                return;
+            }
+
+            // 1. Find & Remove Source
+            let srcNode = null;
+            function removeSrc(list) {
+                const idx = list.findIndex(n => n.id === srcId);
+                if (idx !== -1) {
+                    srcNode = list[idx];
+                    list.splice(idx, 1);
+                    return true;
+                }
+                for (let n of list) {
+                    if (n.children && removeSrc(n.children)) return true;
+                }
+                return false;
+            }
+
+            // Execute remove
+            if (!removeSrc(data)) return;
+
+            // 2. Insert at Target
+            function insert(list) {
+                // Check if target is in this list level
+                const idx = list.findIndex(n => n.id === targetId);
+                if (idx !== -1) {
+                    if (action === 'before') {
+                        list.splice(idx, 0, srcNode);
+                    } else if (action === 'after') {
+                        list.splice(idx + 1, 0, srcNode);
+                    } else if (action === 'inside') {
+                        const targetNode = list[idx];
+                        if (!targetNode.children) targetNode.children = [];
+                        targetNode.children.push(srcNode);
+                        targetNode.expanded = true;
+                    }
+                    return true;
+                }
+                // Recurse
+                for (let n of list) {
+                    if (n.children && insert(n.children)) return true;
+                }
+                return false;
+            }
+
+            // If insert fails (e.g. target not found), we should probably restore srcNode?
+            // But with the cycle check above, target SHOULD be found unless it was srcNode itself (handled)
+            // or some other race condition. 
+            if (!insert(data)) {
+                // Fallback: Add back to root if insert fails to avoid total loss
+                data.push(srcNode);
+            }
+
+            saveData();
+            render();
+        }
+
+        // Initial Render
+        render();
+
+    </script>
+</body>
+
+</html>
