@@ -10,12 +10,18 @@ const APPS_DATA = [
         "name":  "Control de Gastos | Premium Management",
         "path":  "controlGastos.html",
         "filename":  "controlGastos.html",
-        "icon":  "wallet"
+        "icon":  "layout"
     },
     {
         "name":  "Lista de Tareas con Estadísticas",
         "path":  "lista_tareas_estadisticas.html",
         "filename":  "lista_tareas_estadisticas.html",
         "icon":  "layout"
+    },
+    {
+        "name":  "Lista de Compras | Smart Hierarchy",
+        "path":  "shoppingList.html",
+        "filename":  "shoppingList.html",
+        "icon":  "shopping-cart"
     }
 ];

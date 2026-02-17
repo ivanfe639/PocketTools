@@ -362,6 +362,17 @@
         .report-results {
             margin-top: 1rem;
         }
+
+        .version-tag {
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+            font-size: 0.65rem;
+            color: var(--text-dim);
+            opacity: 0.6;
+            font-weight: 300;
+            pointer-events: none;
+        }
     </style>
 </head>
 
@@ -424,6 +435,13 @@
                     <label for="fechaHasta">Hasta</label>
                     <input type="date" id="fechaHasta">
                 </div>
+                <div class="field" style="grid-column: span 2;">
+                    <label for="filtroFuente">Filtrar por Fuente</label>
+                    <select id="filtroFuente" class="input-select"
+                        style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--glass-border); border-radius: 12px; padding: 0.75rem 1rem; color: white; outline: none; width: 100%;">
+                        <option value="">Todas las fuentes</option>
+                    </select>
+                </div>
             </div>
 
             <div class="report-summary">
@@ -442,6 +460,8 @@
                 Borrar Data del Rango
             </button>
         </div>
+
+        <div class="version-tag">v1.2.5</div>
     </div>
 
     <script>
@@ -487,10 +507,23 @@
 
         function updateSourcesList() {
             sourcesList.innerHTML = '';
+            const filterSelect = document.getElementById('filtroFuente');
+            const currentFilter = filterSelect.value;
+
+            filterSelect.innerHTML = '<option value="">Todas las fuentes</option>';
+
             sources.sort().forEach(source => {
+                // For datalist
                 const option = document.createElement('option');
                 option.value = source;
                 sourcesList.appendChild(option);
+
+                // For filter select
+                const filterOption = document.createElement('option');
+                filterOption.value = source;
+                filterOption.textContent = source;
+                if (source === currentFilter) filterOption.selected = true;
+                filterSelect.appendChild(filterOption);
             });
         }
 
@@ -574,6 +607,7 @@
             reportList.innerHTML = '';
             const desde = fechaDesde.value;
             const hasta = fechaHasta.value;
+            const fuenteFiltro = document.getElementById('filtroFuente').value;
 
             let filtered = expenses;
 
@@ -582,6 +616,9 @@
             }
             if (hasta) {
                 filtered = filtered.filter(e => e.simpleDate <= hasta);
+            }
+            if (fuenteFiltro) {
+                filtered = filtered.filter(e => e.source === fuenteFiltro);
             }
 
             if (filtered.length === 0) {
@@ -604,7 +641,7 @@
             }
 
             let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Fecha,Concepto,Valor\n";
+            csvContent += "Fecha,Concepto,Valor,Fuente\n";
 
             expenses.forEach(e => {
                 // Formatting for CSV (removing commas from concept if any)
@@ -657,6 +694,7 @@
 
         fechaDesde.addEventListener('change', renderReport);
         fechaHasta.addEventListener('change', renderReport);
+        document.getElementById('filtroFuente').addEventListener('change', renderReport);
 
         valueInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') registerExpense();
