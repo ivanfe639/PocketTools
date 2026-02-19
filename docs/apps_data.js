@@ -13,6 +13,12 @@ const APPS_DATA = [
         "icon":  "layout"
     },
     {
+        "name":  "Notas Guiadas | PocketTools",
+        "path":  "guided_notes.html",
+        "filename":  "guided_notes.html",
+        "icon":  "map-pin"
+    },
+    {
         "name":  "Lista de Tareas con Estadísticas",
         "path":  "lista_tareas_estadisticas.html",
         "filename":  "lista_tareas_estadisticas.html",

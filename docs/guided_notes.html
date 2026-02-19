@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notas Guiadas | PocketTools</title>
+    <meta name="app-icon" content="map-pin">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            /* Violet */
+            --primary-hover: #7c3aed;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent: #10b981;
+            --danger: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem 1rem;
+            color: var(--text-main);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            /* Slightly wider for notes */
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.8s ease-out;
+            position: relative;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 2rem;
+            background: linear-gradient(to right, #a78bfa, #8b5cf6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        /* Controls Section (Search + Add) */
+        .controls-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .search-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .search-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 0.8rem 1rem;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+        }
+
+        .add-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .btn {
+            cursor: pointer;
+            border: none;
+            border-radius: 12px;
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        /* Notes List (Accordion) */
+        .notes-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .note-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .note-card:hover {
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        /* Header of the Note (Accordion Trigger) */
+        .note-header {
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.02);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .note-header:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .note-title-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .note-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        /* Location Badge */
+        .location-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.3rem 0.6rem;
+            background: rgba(16, 185, 129, 0.1);
+            /* Greenish tint */
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            border-radius: 8px;
+            font-size: 0.75rem;
+            color: var(--accent);
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+        .location-badge:hover {
+            background: rgba(16, 185, 129, 0.2);
+        }
+
+        .note-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-icon {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            cursor: pointer;
+            padding: 0.4rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-icon:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+        }
+
+        .btn-icon.delete:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        /* Content of the Note (Accordion Body) */
+        .note-body {
+            padding: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out, padding 0.3s ease;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .note-card.expanded .note-body {
+            padding: 1.5rem;
+            max-height: 1000px;
+            /* Arbitrary large height */
+            transition: max-height 0.5s ease-in, padding 0.3s ease;
+        }
+
+        /* Items List */
+        .note-items {
+            list-style: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .item-row {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .item-row:last-child {
+            border-bottom: none;
+        }
+
+        .item-text {
+            flex: 1;
+            font-size: 0.95rem;
+            color: var(--text-dim);
+        }
+
+        /* Add Item Input */
+        .add-item-row {
+            display: flex;
+            gap: 0.8rem;
+        }
+
+        .input-small {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            padding: 0.6rem 1rem;
+            color: white;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .input-small:focus {
+            border-color: var(--primary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-dim);
+            font-style: italic;
+        }
+
+        /* Scrollbar for list */
+        .notes-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .notes-list::-webkit-scrollbar-thumb {
+            background: var(--glass-border);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Notas Guiadas</h1>
+
+        <!-- Controls: Search & New Note -->
+        <div class="controls-section">
+            <div class="search-row">
+                <input type="text" id="searchInput" class="search-input"
+                    placeholder="Buscar por título o contenido del item...">
+            </div>
+            <div class="add-row">
+                <input type="text" id="newNoteTitle" class="search-input" placeholder="Título de la nueva nota...">
+                <button class="btn btn-primary" id="btnCreateNote">
+                    <i data-lucide="plus"></i> Crear Nota
+                </button>
+            </div>
+        </div>
+
+        <!-- Notes List -->
+        <div class="notes-list" id="notesList">
+            <!-- Notes will be injected here -->
+        </div>
+    </div>
+
+    <script>
+        // Data Management
+        const STORAGE_KEY = 'pt_guided_notes';
+        let notes = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+        // Elements
+        const notesList = document.getElementById('notesList');
+        const newNoteTitle = document.getElementById('newNoteTitle');
+        const btnCreateNote = document.getElementById('btnCreateNote');
+        const searchInput = document.getElementById('searchInput');
+
+        // Icons
+        lucide.createIcons();
+
+        // --- Logic ---
+
+        function save() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+            render();
+        }
+
+        async function createNote() {
+            const title = newNoteTitle.value.trim();
+            if (!title) {
+                alert('Por favor ingrese un título para la nota.');
+                return;
+            }
+
+            // Get Location
+            let coords = null;
+            if ('geolocation' in navigator) {
+                try {
+                    const position = await new Promise((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject);
+                    });
+                    coords = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                } catch (error) {
+                    console.warn('Geolocation denied or failed:', error);
+                    // Continue without coords if user denies
+                }
+            }
+
+            const newNote = {
+                id: Date.now(),
+                title: title,
+                coords: coords,
+                items: [],
+                isOpen: true // Auto-open new notes
+            };
+
+            notes.unshift(newNote); // Add to top
+            newNoteTitle.value = '';
+            save();
+        }
+
+        function deleteNote(id, event) {
+            event.stopPropagation(); // Prevent accordion toggle
+            if (confirm('¿Eliminar esta nota y todos sus items?')) {
+                notes = notes.filter(n => n.id !== id);
+                save();
+            }
+        }
+
+        function toggleNote(id) {
+            const note = notes.find(n => n.id === id);
+            if (note) {
+                note.isOpen = !note.isOpen;
+                save();
+            }
+        }
+
+        function addItem(noteId) {
+            const input = document.getElementById(`input-${noteId}`);
+            const text = input.value.trim();
+            if (!text) return;
+
+            const note = notes.find(n => n.id === noteId);
+            if (note) {
+                note.items.push({
+                    id: Date.now(),
+                    text: text,
+                    done: false
+                });
+                input.value = '';
+                save();
+                // Ensure note stays open
+                if (!note.isOpen) {
+                    note.isOpen = true;
+                    save();
+                }
+                // Refocus input
+                setTimeout(() => document.getElementById(`input-${noteId}`).focus(), 100);
+            }
+        }
+
+        function deleteItem(noteId, itemId) {
+            const note = notes.find(n => n.id === noteId);
+            if (note) {
+                note.items = note.items.filter(i => i.id !== itemId);
+                save();
+            }
+        }
+
+        function render() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            notesList.innerHTML = '';
+
+            // Filter
+            const filteredNotes = notes.filter(note => {
+                const titleMatch = note.title.toLowerCase().includes(searchTerm);
+                const itemsMatch = note.items.some(item => item.text.toLowerCase().includes(searchTerm));
+                return titleMatch || itemsMatch;
+            });
+
+            if (filteredNotes.length === 0) {
+                notesList.innerHTML = '<div class="empty-state">No se encontraron notas.</div>';
+                return;
+            }
+
+            filteredNotes.forEach(note => {
+                const card = document.createElement('div');
+                card.className = `note-card ${note.isOpen ? 'expanded' : ''}`;
+
+                // Location Badge HTML
+                let locBadge = '';
+                if (note.coords) {
+                    const mapUrl = `https://www.google.com/maps?q=${note.coords.lat},${note.coords.lng}`;
+                    locBadge = `
+                        <a href="${mapUrl}" target="_blank" class="location-badge" onclick="event.stopPropagation()">
+                            <i data-lucide="map-pin" style="width: 12px; height: 12px;"></i>
+                            Ver en Mapa
+                        </a>
+                    `;
+                }
+
+                // Items HTML
+                let itemsHtml = '';
+                note.items.forEach(item => {
+                    // Highlight search term in item text if searching
+                    let displayText = item.text;
+                    if (searchTerm) {
+                        const regex = new RegExp(`(${searchTerm})`, 'gi');
+                        displayText = displayText.replace(regex, '<mark style="background:rgba(139, 92, 246, 0.3); color: white;">$1</mark>');
+                    }
+
+                    itemsHtml += `
+                        <li class="item-row">
+                            <span class="item-text">${displayText}</span>
+                            <button class="btn-icon delete" onclick="deleteItem(${note.id}, ${item.id})">
+                                <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+                            </button>
+                        </li>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <div class="note-header" onclick="toggleNote(${note.id})">
+                        <div class="note-title-group">
+                            <span class="note-title">${note.title}</span>
+                            ${locBadge}
+                        </div>
+                        <div class="note-actions">
+                             <i data-lucide="${note.isOpen ? 'chevron-up' : 'chevron-down'}" class="btn-icon"></i>
+                             <button class="btn-icon delete" onclick="deleteNote(${note.id}, event)">
+                                <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                             </button>
+                        </div>
+                    </div>
+                    <div class="note-body">
+                        <ul class="note-items">
+                            ${itemsHtml}
+                        </ul>
+                        <div class="add-item-row">
+                            <input type="text" id="input-${note.id}" class="input-small" placeholder="Agregar item..." onkeypress="if(event.key === 'Enter') addItem(${note.id})">
+                            <button class="btn btn-primary" style="padding: 0.5rem 1rem;" onclick="addItem(${note.id})">
+                                <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                notesList.appendChild(card);
+            });
+
+            lucide.createIcons();
+        }
+
+        // Listeners
+        btnCreateNote.addEventListener('click', createNote);
+        newNoteTitle.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') createNote();
+        });
+        searchInput.addEventListener('input', render);
+
+        // Initial Render
+        render();
+
+    </script>
+</body>
+
+</html>
