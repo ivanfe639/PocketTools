@@ -427,6 +427,111 @@
             letter-spacing: 1px;
             font-weight: 600;
         }
+
+
+        /* Dropdown Menu */
+        .action-menu-btn {
+            background: transparent;
+            color: var(--text-dim);
+            border: none;
+            padding: 0.5rem;
+            cursor: pointer;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-menu-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .dropdown-wrapper {
+            position: relative;
+        }
+
+        .dropdown-content {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            width: 180px;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 0.5rem;
+            display: none;
+            flex-direction: column;
+            gap: 0.25rem;
+            z-index: 100;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            margin-top: 0.25rem;
+        }
+
+        .dropdown-content.show {
+            display: flex;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s;
+            background: transparent;
+            border: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .dropdown-item.danger {
+            color: var(--danger);
+        }
+
+        .dropdown-item.danger:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        .color-picker-menu-item {
+            position: relative;
+        }
+
+        .color-swatch-small {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        @media (max-width: 640px) {
+            body {
+                padding: 0;
+                align-items: flex-start;
+                /* Align to top */
+            }
+
+            .container {
+                max-width: 100%;
+                border-radius: 0;
+                border: none;
+                border-left: none;
+                border-right: none;
+                min-height: 100vh;
+                box-shadow: none;
+                padding: 1rem;
+                /* Slightly less padding internally */
+            }
+        }
     </style>
 </head>
 
@@ -587,64 +692,103 @@
             const actions = document.createElement('div');
             actions.className = 'header-actions';
 
+
             // Custom Color Picker (Only for Lists)
             if (node.type === 'list') {
-                const colorWrapper = document.createElement('div');
-                colorWrapper.className = 'color-picker-btn';
-                colorWrapper.title = 'Cambiar Color';
-                // Show current color
-                colorWrapper.style.backgroundColor = effectiveColor;
-
-                const colorInput = document.createElement('input');
-                colorInput.type = 'color';
-                colorInput.className = 'color-picker-input';
-                colorInput.value = effectiveColor;
-                colorInput.oninput = (e) => {
-                    node.color = e.target.value;
-                    colorWrapper.style.backgroundColor = node.color;
-                    // Apply immediately to DOM for responsive feel
-                    wrapper.style.setProperty('--node-color', node.color);
-                };
-                colorInput.onchange = (e) => {
-                    node.color = e.target.value;
-                    saveData();
-                    render(); // Re-render to propagate to children
-                };
-
-                colorWrapper.appendChild(colorInput);
-                actions.appendChild(colorWrapper);
-            }
-
-            // Add Buttons (Only for Lists)
-            if (node.type === 'list') {
+                // 1. "Add Item" Button - Visible
                 const addItemBtn = document.createElement('button');
                 addItemBtn.className = 'btn-icon';
                 addItemBtn.title = 'Agregar Artículo';
                 addItemBtn.innerHTML = `<i data-lucide="plus" size="16"></i>`;
                 addItemBtn.onclick = (e) => {
-                    e.stopPropagation(); // Prevent accordion toggle
+                    e.stopPropagation();
                     addItem(node.id, 'item');
                 }
                 actions.appendChild(addItemBtn);
 
-                const addListBtn = document.createElement('button');
-                addListBtn.className = 'btn-icon';
-                addListBtn.title = 'Agregar Sub-lista';
-                addListBtn.innerHTML = `<i data-lucide="folder-plus" size="16"></i>`;
-                addListBtn.onclick = (e) => {
+                // 2. Dropdown Menu for other actions
+                const dropdownWrapper = document.createElement('div');
+                dropdownWrapper.className = 'dropdown-wrapper';
+
+                const moreBtn = document.createElement('button');
+                moreBtn.className = 'action-menu-btn';
+                moreBtn.innerHTML = `<i data-lucide="more-vertical" size="16"></i>`;
+                moreBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    // Close all other dropdowns
+                    document.querySelectorAll('.dropdown-content.show').forEach(d => {
+                        if (d !== dropdownContent) d.classList.remove('show');
+                    });
+                    dropdownContent.classList.toggle('show');
+                };
+
+                const dropdownContent = document.createElement('div');
+                dropdownContent.className = 'dropdown-content';
+
+                // Option: Add Sub-list
+                const addListOption = document.createElement('button');
+                addListOption.className = 'dropdown-item';
+                addListOption.innerHTML = `<i data-lucide="folder-plus" size="14"></i> Nueva Sub-lista`;
+                addListOption.onclick = (e) => {
                     e.stopPropagation();
                     addItem(node.id, 'list');
-                }
-                actions.appendChild(addListBtn);
-            }
+                    dropdownContent.classList.remove('show');
+                };
+                dropdownContent.appendChild(addListOption);
 
-            // Delete Button
-            const delBtn = document.createElement('button');
-            delBtn.className = 'btn-icon btn-delete';
-            delBtn.title = 'Eliminar';
-            delBtn.innerHTML = `<i data-lucide="trash-2" size="16"></i>`;
-            delBtn.onclick = () => deleteNode(node.id);
-            actions.appendChild(delBtn);
+                // Option: Change Color
+                const colorOption = document.createElement('div'); // Needs to be div to hold input
+                colorOption.className = 'dropdown-item color-picker-menu-item';
+                colorOption.innerHTML = `
+                    <div class="color-swatch-small" style="background-color: ${effectiveColor}"></div>
+                    Cambiar Color
+                `;
+
+                const colorInput = document.createElement('input');
+                colorInput.type = 'color';
+                colorInput.className = 'color-picker-input';
+                colorInput.value = effectiveColor;
+                colorInput.style.left = '0';
+                colorInput.style.top = '0';
+                colorInput.style.width = '100%';
+                colorInput.style.height = '100%';
+
+                colorInput.oninput = (e) => {
+                    node.color = e.target.value;
+                    colorOption.querySelector('.color-swatch-small').style.backgroundColor = node.color;
+                    wrapper.style.setProperty('--node-color', node.color);
+                };
+                colorInput.onchange = (e) => {
+                    node.color = e.target.value;
+                    saveData();
+                    render();
+                };
+                colorOption.appendChild(colorInput);
+                dropdownContent.appendChild(colorOption);
+
+                // Option: Delete
+                const deleteOption = document.createElement('button');
+                deleteOption.className = 'dropdown-item danger';
+                deleteOption.innerHTML = `<i data-lucide="trash-2" size="14"></i> Eliminar Lista`;
+                deleteOption.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteNode(node.id);
+                };
+                dropdownContent.appendChild(deleteOption);
+
+                dropdownWrapper.appendChild(moreBtn);
+                dropdownWrapper.appendChild(dropdownContent);
+                actions.appendChild(dropdownWrapper);
+
+            } else {
+                // Delete Button (For Items - Keep Visible)
+                const delBtn = document.createElement('button');
+                delBtn.className = 'btn-icon btn-delete';
+                delBtn.title = 'Eliminar';
+                delBtn.innerHTML = `<i data-lucide="trash-2" size="16"></i>`;
+                delBtn.onclick = () => deleteNode(node.id);
+                actions.appendChild(delBtn);
+            }
 
             header.appendChild(actions);
 
@@ -919,6 +1063,16 @@
             saveData();
             render();
         }
+
+
+        // Global Click Listener to close dropdowns
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown-wrapper')) {
+                document.querySelectorAll('.dropdown-content.show').forEach(d => {
+                    d.classList.remove('show');
+                });
+            }
+        });
 
         // Initial Render
         render();
