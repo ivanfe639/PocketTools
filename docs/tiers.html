@@ -140,6 +140,36 @@
             transform: translateY(-2px);
         }
 
+        /* Custom File Upload Button */
+        .file-upload-btn {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px dashed var(--glass-border);
+            color: var(--text-dim);
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .file-upload-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .file-upload-btn.has-file {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(16, 185, 129, 0.1);
+            border-style: solid;
+        }
+
         /* Timeline / List Area */
         .timeline {
             display: flex;
@@ -396,9 +426,12 @@
                     <label>Descripción / Título del Hito</label>
                     <input type="text" id="inputDesc" placeholder="Ej: Lanzamiento de la versión 1.0...">
                 </div>
-                <div class="input-group" style="flex: 0 1 auto;">
+                <div class="input-group" style="flex: 0 1 auto; min-width: 180px;">
                     <label>Foto (Opcional)</label>
-                    <input type="file" id="inputImage" accept="image/*" capture="environment">
+                    <label for="inputImage" class="file-upload-btn" id="fileBtnLabel">
+                        <i data-lucide="camera"></i> <span>Adjuntar Foto</span>
+                    </label>
+                    <input type="file" id="inputImage" accept="image/*" capture="environment" style="display: none;">
                 </div>
             </div>
             <button class="btn-add" onclick="addMilestone()">
@@ -483,7 +516,25 @@
             // Reset description and file only, keep date
             document.getElementById('inputDesc').value = '';
             document.getElementById('inputImage').value = '';
+
+            // Reset button style
+            const btnLabel = document.getElementById('fileBtnLabel');
+            btnLabel.classList.remove('has-file');
+            btnLabel.querySelector('span').innerText = 'Adjuntar Foto';
         }
+
+        // File Input Listener
+        document.getElementById('inputImage').addEventListener('change', function () {
+            const btnLabel = document.getElementById('fileBtnLabel');
+            const span = btnLabel.querySelector('span');
+            if (this.files && this.files.length > 0) {
+                span.innerText = this.files[0].name;
+                btnLabel.classList.add('has-file');
+            } else {
+                span.innerText = 'Adjuntar Foto';
+                btnLabel.classList.remove('has-file');
+            }
+        });
 
         // Image Compression Logic
         function processImage(file) {
