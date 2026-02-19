@@ -23,5 +23,11 @@ const APPS_DATA = [
         "path":  "shoppingList.html",
         "filename":  "shoppingList.html",
         "icon":  "shopping-cart"
+    },
+    {
+        "name":  "Hitos Históricos | PocketTools",
+        "path":  "tiers.html",
+        "filename":  "tiers.html",
+        "icon":  "layout"
     }
 ];
