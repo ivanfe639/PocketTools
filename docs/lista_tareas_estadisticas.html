@@ -478,16 +478,30 @@
   <div class="container">
     <h2>Lista de Tareas</h2>
     <input type="text" id="taskInput" placeholder="Añadir nueva tarea...">
-    <select id="taskType">
-      <option value="check"> Check ✔</option>
-      <option value="counter"> Contador 🔢</option>
-    </select>
+    <div style="display: flex; gap: 10px; margin-bottom: 12px; width: 100%;">
+      <select id="taskType" style="flex: 1; margin-bottom: 0;">
+        <option value="check"> Check ✔</option>
+        <option value="counter"> Contador 🔢</option>
+      </select>
+      <input type="number" id="taskTarget" placeholder="Meta" style="display: none; width: 80px; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text-main); outline: none; margin-bottom: 0; box-sizing: border-box;" min="0" value="10">
+    </div>
     <button id="addBtn">Agregar</button>
     <div class="button-row">
       <button id="statsBtn">📊 Estadísticas</button>
       <button id="toggleBtn">🌗 Tema</button>
       <button id="testBtn">🎲 Test</button>
     </div>
+
+    <div class="progress-bar-wrapper" style="margin-bottom: 15px;">
+      <div style="display: flex; justify-content: space-between; font-size: 13px; color: var(--text-sec); margin-bottom: 5px;">
+        <span>Progreso de hoy</span>
+        <span id="progressText">0%</span>
+      </div>
+      <div style="height: 8px; background: var(--card-bg); border-radius: 4px; overflow: hidden; border: 1px solid var(--border);">
+        <div id="progressBar" style="height: 100%; width: 0%; background: var(--primary); transition: width 0.4s ease; border-radius: 4px;"></div>
+      </div>
+    </div>
+
     <ul id="taskList"></ul>
     <div class="stats">
       <p>Tareas completadas hoy: <span id="completedToday">0</span></p>
@@ -536,11 +550,85 @@
     </div>
   </div>
   <script>
+    // Audio Context para sonidos de interacción
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+
+    function playTapSound() {
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      osc.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.05);
+      
+      gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+      
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.05);
+    }
+
+    function playSuccessSound() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      osc.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.15, audioCtx.currentTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.1);
+    }
+
+    function playCelebrationSound() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+      let startTime = audioCtx.currentTime;
+      notes.forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.type = 'square';
+        osc.frequency.value = freq;
+        const noteStart = startTime + i * 0.12;
+        const noteDuration = (i === notes.length - 1) ? 0.6 : 0.12;
+        gainNode.gain.setValueAtTime(0, noteStart);
+        gainNode.gain.linearRampToValueAtTime(0.1, noteStart + 0.02);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, noteStart + noteDuration);
+        osc.start(noteStart);
+        osc.stop(noteStart + noteDuration);
+      });
+    }
+
+    document.addEventListener('click', (e) => {
+      // Reproducir sonido al tocar botones, checks o selects
+      if (e.target.closest('button, input[type="checkbox"], select')) {
+        playTapSound();
+      }
+    });
+
     const addBtn = document.getElementById("addBtn");
     const taskInput = document.getElementById("taskInput");
     const taskType = document.getElementById("taskType");
+    const taskTarget = document.getElementById("taskTarget");
     const taskList = document.getElementById("taskList");
     const completedTodayEl = document.getElementById("completedToday");
+
+    taskType.addEventListener("change", () => {
+      taskTarget.style.display = taskType.value === "counter" ? "block" : "none";
+    });
 
     const statsBtn = document.getElementById("statsBtn");
     const statsView = document.getElementById("statsView");
@@ -689,14 +777,20 @@
         controlContainer.className = "counter-controls";
 
         if (task.type === "counter") {
+          const target = task.target !== undefined ? task.target : 10;
           const minusBtn = document.createElement("button");
           minusBtn.textContent = "−";
           minusBtn.className = "count-btn";
           minusBtn.addEventListener("click", () => {
             if (task.count > 0) {
-              const wasZero = task.count === 0;
-              task.count--;
-              if (task.count === 0) stats.completedToday--;
+              if (target !== 0) {
+                const wasCompleted = task.count >= target;
+                task.count--;
+                const isCompleted = task.count >= target;
+                if (wasCompleted && !isCompleted) stats.completedToday--;
+              } else {
+                task.count--;
+              }
 
               if (!stats.history[getToday()]) stats.history[getToday()] = {};
               stats.history[getToday()][task.text] = task.count;
@@ -707,16 +801,26 @@
           });
 
           const countDisplay = document.createElement("span");
-          countDisplay.textContent = task.count || 0;
+          countDisplay.textContent = target === 0 ? (task.count || 0) : `${task.count || 0}/${target}`;
           countDisplay.className = "count-val";
+          countDisplay.style.minWidth = "45px";
+          countDisplay.style.fontSize = "14px";
 
           const plusBtn = document.createElement("button");
           plusBtn.textContent = "+";
           plusBtn.className = "count-btn";
           plusBtn.addEventListener("click", () => {
-            const wasZero = (task.count || 0) === 0;
-            task.count = (task.count || 0) + 1;
-            if (wasZero) stats.completedToday++;
+            if (target !== 0) {
+              const wasCompleted = (task.count || 0) >= target;
+              task.count = (task.count || 0) + 1;
+              const isCompleted = task.count >= target;
+              if (!wasCompleted && isCompleted) {
+                 playSuccessSound();
+                 stats.completedToday++;
+              }
+            } else {
+              task.count = (task.count || 0) + 1;
+            }
 
             if (!stats.history[getToday()]) stats.history[getToday()] = {};
             stats.history[getToday()][task.text] = task.count;
@@ -729,7 +833,7 @@
           controlContainer.appendChild(countDisplay);
           controlContainer.appendChild(plusBtn);
 
-          if (task.count > 0) li.classList.add("completed");
+          if (target !== 0 && task.count >= target) li.classList.add("completed");
         } else {
           const checkbox = document.createElement("input");
           checkbox.type = "checkbox";
@@ -737,6 +841,7 @@
           checkbox.addEventListener("change", () => {
             task.completed = checkbox.checked;
             if (checkbox.checked) {
+              playSuccessSound();
               stats.completedToday++;
               stats.completedTotal++;
               if (!stats.history[getToday()]) stats.history[getToday()] = {};
@@ -761,7 +866,8 @@
             `¿Estás seguro de que quieres eliminar "${task.text}"?`,
             () => {
               if (task.type === 'counter') {
-                if (task.count > 0) stats.completedToday--;
+                const target = task.target !== undefined ? task.target : 10;
+                if (target !== 0 && task.count >= target) stats.completedToday--;
               } else {
                 if (task.completed) stats.completedToday--;
               }
@@ -806,6 +912,47 @@
 
       completedTodayEl.textContent = stats.completedToday;
 
+      // Update internal progress bar visually
+      let totalTasks = 0;
+      let completedTasks = 0;
+      tasks.forEach(t => {
+        if (t.type === 'counter') {
+          const target = t.target !== undefined ? t.target : 10;
+          if (target !== 0) {
+            totalTasks++;
+            if ((t.count || 0) >= target) completedTasks++;
+          }
+        } else {
+          totalTasks++;
+          if (t.completed) completedTasks++;
+        }
+      });
+      // Safety check: sync the stats if out of sync
+      if (stats.completedToday !== completedTasks) {
+          stats.completedToday = completedTasks;
+          completedTodayEl.textContent = stats.completedToday;
+          saveData(); 
+      }
+      
+      let percent = totalTasks === 0 ? 0 : Math.round((completedTasks / totalTasks) * 100);
+      const progressBar = document.getElementById("progressBar");
+      const progressText = document.getElementById("progressText");
+      if (progressBar && progressText) {
+          if (typeof window._lastPercent !== 'undefined' && window._lastPercent < 100 && percent === 100 && totalTasks > 0) {
+             playCelebrationSound();
+          }
+          window._lastPercent = percent;
+
+          progressBar.style.width = `${percent}%`;
+          progressText.textContent = `${percent}%`;
+          if (percent === 100 && totalTasks > 0) {
+             progressBar.style.background = "#34c759"; // Green
+             progressText.style.color = "#34c759";
+          } else {
+             progressBar.style.background = "var(--primary)";
+             progressText.style.color = "var(--text-sec)";
+          }
+      }
     }
 
     taskList.addEventListener("dragover", e => {
@@ -856,6 +1003,8 @@
         const newTask = { text: taskText, type: type };
         if (type === 'counter') {
           newTask.count = 0;
+          const parsedTarget = parseInt(taskTarget.value, 10);
+          newTask.target = isNaN(parsedTarget) ? 10 : parsedTarget;
         } else {
           newTask.completed = false;
         }
@@ -1053,9 +1202,34 @@
       thTask.textContent = "Tarea";
       headerRow.appendChild(thTask);
 
+      // Pre-calculate perfect days
+      const perfectDays = new Set();
+      days.forEach(day => {
+        let total = 0;
+        let completed = 0;
+        tasks.forEach(t => {
+            if (t.type === 'counter') {
+                const target = t.target !== undefined ? t.target : 10;
+                if (target !== 0) {
+                    total++;
+                    const val = (stats.history[day] && stats.history[day][t.text]) || 0;
+                    if (val >= target) completed++;
+                }
+            } else {
+                total++;
+                const val = stats.history[day] && stats.history[day][t.text];
+                if (val) completed++;
+            }
+        });
+        if (total > 0 && completed === total) perfectDays.add(day);
+      });
+
       days.forEach(day => {
         const th = document.createElement("th");
         th.textContent = day;
+        if (perfectDays.has(day)) {
+            th.style.color = "#34c759";
+        }
         headerRow.appendChild(th);
       });
       statsTable.appendChild(headerRow);
@@ -1071,6 +1245,10 @@
 
           if (stats.history[day] && stats.history[day][task.text]) {
             td.classList.add("completed");
+            if (perfectDays.has(day)) {
+              td.style.color = "#34c759";
+              td.style.textShadow = "0 0 8px rgba(52,199,89, 0.3)";
+            }
             const val = stats.history[day][task.text];
             td.textContent = (typeof val === 'number') ? val : "✔";
           } else {
