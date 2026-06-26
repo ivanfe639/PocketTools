@@ -35,5 +35,11 @@ const APPS_DATA = [
         "path":  "tiers.html",
         "filename":  "tiers.html",
         "icon":  "layout"
+    },
+    {
+        "name":  "Tratamiento Checker - Control de Medicamentos",
+        "path":  "tratamientoCheck.html",
+        "filename":  "tratamientoCheck.html",
+        "icon":  "layout"
     }
 ];
